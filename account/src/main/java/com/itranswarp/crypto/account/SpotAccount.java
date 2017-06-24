@@ -1,0 +1,28 @@
+package com.itranswarp.crypto.account;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
+
+import com.itranswarp.crypto.store.AbstractEntity;
+import com.itranswarp.crypto.symbol.Currency;
+
+@Entity
+@Table(uniqueConstraints = @UniqueConstraint(columnNames = { "userId", "currency" }))
+public class SpotAccount extends AbstractEntity {
+
+	@Column(nullable = false)
+	public long userId;
+
+	@Column(nullable = false, length = 20)
+	public Currency currency;
+
+	@Column(nullable = false)
+	public long balance;
+
+	@Override
+	public String toString() {
+		return String.format("SpotAccount(userId=%s, %s=%s)", userId, currency.name(), currency.display(balance));
+	}
+}
