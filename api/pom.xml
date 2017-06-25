@@ -19,6 +19,11 @@
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
+			<groupId>com.itranswarp.crypto</groupId>
+			<artifactId>clearing</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
 			<groupId>io.springfox</groupId>
 			<artifactId>springfox-swagger2</artifactId>
 			<version>${swagger2.version}</version>

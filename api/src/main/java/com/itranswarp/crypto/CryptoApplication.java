@@ -11,8 +11,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import com.itranswarp.crypto.match.MatchResult;
 import com.itranswarp.crypto.match.Tick;
-import com.itranswarp.crypto.order.Order;
+import com.itranswarp.crypto.order.OrderMessage;
 import com.itranswarp.crypto.queue.MessageQueue;
 import com.itranswarp.warpdb.WarpDb;
 
@@ -47,7 +48,12 @@ public class CryptoApplication {
 	}
 
 	@Bean("orderMessageQueue")
-	MessageQueue<Order> createOrderMessageQueue() {
+	MessageQueue<OrderMessage> createOrderMessageQueue() {
+		return new MessageQueue<>(10000);
+	}
+
+	@Bean("matchResultMessageQueue")
+	MessageQueue<MatchResult> createMatchResultMessageQueue() {
 		return new MessageQueue<>(10000);
 	}
 

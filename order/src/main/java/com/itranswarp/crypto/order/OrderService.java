@@ -10,10 +10,10 @@ import com.itranswarp.crypto.store.AbstractService;
 @Component
 public class OrderService extends AbstractService {
 
-	final MessageQueue<Order> orderQueue;
+	final MessageQueue<OrderMessage> orderMessageQueue;
 
-	public OrderService(@Autowired @Qualifier("orderQueue") MessageQueue<Order> orderQueue) {
-		this.orderQueue = orderQueue;
+	public OrderService(@Autowired @Qualifier("orderMessageQueue") MessageQueue<OrderMessage> orderMessageQueue) {
+		this.orderMessageQueue = orderMessageQueue;
 	}
 
 	public void createBuyLimitOrder(long price, long amount) throws InterruptedException {
@@ -22,7 +22,7 @@ public class OrderService extends AbstractService {
 		order.price = price;
 		order.type = OrderType.BUY_LIMIT;
 		db.save(order);
-		orderQueue.sendMessage(order);
+		orderMessageQueue.sendMessage(new OrderMessage(order));
 	}
 
 	public void createSellLimitOrder(long price, long amount) throws InterruptedException {
@@ -31,6 +31,6 @@ public class OrderService extends AbstractService {
 		order.price = price;
 		order.type = OrderType.SELL_LIMIT;
 		db.save(order);
-		orderQueue.sendMessage(order);
+		orderMessageQueue.sendMessage(new OrderMessage(order));
 	}
 }

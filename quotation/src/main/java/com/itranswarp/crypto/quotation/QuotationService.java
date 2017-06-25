@@ -8,6 +8,11 @@ import com.itranswarp.crypto.match.Tick;
 import com.itranswarp.crypto.queue.MessageQueue;
 import com.itranswarp.crypto.symbol.Symbol;
 
+/**
+ * Process tick and order book snapshot to produce market quotation.
+ * 
+ * @author liaoxuefeng
+ */
 public class QuotationService {
 
 	final ZoneId zoneId = ZoneId.systemDefault();

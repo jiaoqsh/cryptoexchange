@@ -130,7 +130,7 @@ public class MatchService extends AbstractRunnableService {
 		if (buyTaker != null) {
 			this.buyBook.add(buyTaker);
 		}
-		if (matchResult.matchRecords != null) {
+		if (!matchResult.isEmpty()) {
 			notifyMatchResult(matchResult);
 		}
 	}
@@ -166,7 +166,7 @@ public class MatchService extends AbstractRunnableService {
 		if (sellTaker != null) {
 			this.sellBook.add(sellTaker);
 		}
-		if (matchResult.matchRecords != null) {
+		if (!matchResult.isEmpty()) {
 			notifyMatchResult(matchResult);
 		}
 	}
