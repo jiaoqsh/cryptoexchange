@@ -1,5 +1,8 @@
 package com.itranswarp.crypto.symbol;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
 /**
  * Define currency constants.
  * 
@@ -7,14 +10,12 @@ package com.itranswarp.crypto.symbol;
  */
 public enum Currency {
 
-	USD(4, 2), CNY(4, 2), JPY(4, 2), BTC(6, 4), LTC(6, 4), ETH(6, 4);
+	USD(2), CNY(2), JPY(2), BTC(4), LTC(4), ETH(4);
 
-	private final int computeScale;
-	private final int displayScale;
+	private final int scale;
 
-	private Currency(int computeScale, int displayScale) {
-		this.computeScale = computeScale;
-		this.displayScale = displayScale;
+	private Currency(int scale) {
+		this.scale = scale;
 	}
 
 	/**
@@ -22,21 +23,25 @@ public enum Currency {
 	 * 
 	 * @return Scale of computing.
 	 */
-	public int getComputeScale() {
-		return this.computeScale;
+	public int getScale() {
+		return this.scale;
 	}
 
 	/**
-	 * Scale for display.
+	 * Set the scale if necessary and rounding with down.
 	 * 
-	 * @return Scale of display.
+	 * @param value
+	 *            Input value of BigDecimal.
+	 * @return Adjusted value.
 	 */
-	public int getDisplayScale() {
-		return this.displayScale;
+	public BigDecimal adjust(BigDecimal value) {
+		if (value.scale() > this.scale) {
+			value = value.setScale(this.scale, RoundingMode.DOWN);
+		}
+		return value;
 	}
 
-	public String display(long value) {
-		double d = value / Math.pow(10, this.computeScale);
-		return String.format("%." + this.displayScale + "f", d);
+	public String display(BigDecimal value) {
+		return String.format("%." + this.scale + "f", adjust(value));
 	}
 }

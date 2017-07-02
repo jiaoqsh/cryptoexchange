@@ -2,12 +2,14 @@ package com.itranswarp.crypto.match;
 
 import static org.junit.Assert.*;
 
+import java.math.BigDecimal;
 import java.util.Random;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import com.itranswarp.crypto.RunnableResource;
+import com.itranswarp.crypto.order.Order;
 import com.itranswarp.crypto.order.OrderMessage;
 import com.itranswarp.crypto.order.OrderType;
 import com.itranswarp.crypto.queue.MessageQueue;
@@ -40,30 +42,24 @@ public class MatchServiceTest {
 		matcher2.start();
 
 		long basePrice = 5000;
-		orderQueue1.sendMessage(OrderBook.createOrder(OrderType.BUY_LIMIT, 1, basePrice, 1));
-		orderQueue2.sendMessage(OrderBook.createOrder(OrderType.BUY_LIMIT, 1, basePrice, 1));
-		orderQueue1.sendMessage(OrderBook.createOrder(OrderType.SELL_LIMIT, 2, basePrice, 1));
-		orderQueue2.sendMessage(OrderBook.createOrder(OrderType.SELL_LIMIT, 2, basePrice, 1));
+		orderQueue1.sendMessage(createOrder(OrderType.BUY_LIMIT, 1, basePrice, 1));
+		orderQueue2.sendMessage(createOrder(OrderType.BUY_LIMIT, 1, basePrice, 1));
+		orderQueue1.sendMessage(createOrder(OrderType.SELL_LIMIT, 2, basePrice, 1));
+		orderQueue2.sendMessage(createOrder(OrderType.SELL_LIMIT, 2, basePrice, 1));
 		final long NUM = 1000000;
 		long totalAmount = 0L;
 		long startTime = System.currentTimeMillis();
 		for (long id = 10; id < NUM; id++) {
 			boolean buy = random.nextInt() % 2 == 0;
-			long price = matcher1.marketPrice + (buy ? randomLong(-1000, 500) : randomLong(-500, 1000));
+			long price = matcher1.marketPrice.longValue() + (buy ? randomLong(-1000, 500) : randomLong(-500, 1000));
 			long amount = 1 + randomLong(1, 500) / (NUM >> 17);
 			totalAmount += amount;
-			orderQueue1.sendMessage(
-					OrderBook.createOrder(buy ? OrderType.BUY_LIMIT : OrderType.SELL_LIMIT, id, price, amount));
-			orderQueue2.sendMessage(
-					OrderBook.createOrder(buy ? OrderType.BUY_LIMIT : OrderType.SELL_LIMIT, id, price, amount));
+			orderQueue1.sendMessage(createOrder(buy ? OrderType.BUY_LIMIT : OrderType.SELL_LIMIT, id, price, amount));
+			orderQueue2.sendMessage(createOrder(buy ? OrderType.BUY_LIMIT : OrderType.SELL_LIMIT, id, price, amount));
 			if ((id % 1000L) == 0L) {
 				Thread.sleep(1);
 			}
 		}
-		// make sure orderQueue is empty:
-		orderQueue1.shutdown();
-		orderQueue2.shutdown();
-
 		// shutdown:
 		matcher1.shutdown();
 		matcher2.shutdown();
@@ -71,10 +67,14 @@ public class MatchServiceTest {
 		tickHandler1.shutdown();
 		tickHandler2.shutdown();
 
+		// make sure orderQueue is empty:
+		orderQueue1.shutdown();
+		orderQueue2.shutdown();
+
 		long endTime = System.currentTimeMillis();
 		matcher1.dump();
 		matcher2.dump();
-		System.out.println("Time: " + (endTime - startTime));
+		System.out.println("1M orders takes time: " + (endTime - startTime));
 		System.out.println("\nTickers 1:\n" + tickHandler1.getCount());
 		System.out.println("\nTickers 2:\n" + tickHandler2.getCount());
 		assertArrayEquals(matcher1.getHashStatus(), matcher2.getHashStatus());
@@ -85,11 +85,21 @@ public class MatchServiceTest {
 		System.out.println("Total tickers: " + tickQueue2.totalMessages());
 	}
 
+	static OrderMessage createOrder(OrderType type, long id, long price, long amount) {
+		Order o = new Order();
+		o.type = type;
+		o.id = id;
+		o.price = BigDecimal.valueOf(price);
+		o.amount = BigDecimal.valueOf(amount);
+		return new OrderMessage(o);
+	}
+
 	static final Random random = new Random();
 
 	static long randomLong(int min, int max) {
 		return random.nextInt(max - min) + min;
 	}
+
 }
 
 class TickHandler implements RunnableResource {

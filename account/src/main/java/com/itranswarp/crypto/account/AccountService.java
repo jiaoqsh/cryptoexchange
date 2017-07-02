@@ -1,5 +1,7 @@
 package com.itranswarp.crypto.account;
 
+import java.math.BigDecimal;
+
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,18 +14,20 @@ import com.itranswarp.crypto.symbol.Currency;
 @Transactional
 public class AccountService extends AbstractService {
 
-	public void deposit(long userId, Currency currency, long amount) {
-		if (amount <= 0) {
+	void assertGreaterThanZero(BigDecimal amount) {
+		if (amount.compareTo(BigDecimal.ZERO) <= 0) {
 			throw new ApiException(ApiError.PARAMETER_INVALID, "amount", "amount must be greater than 0.");
 		}
+	}
+
+	public void deposit(long userId, Currency currency, BigDecimal amount) {
+		assertGreaterThanZero(amount);
 		SpotAccount spotAccount = getSpotAccount(userId, currency);
 		db.update("UPDATE SpotAccount SET balance = balance + ? WHERE id = ?", amount, spotAccount.id);
 	}
 
-	public void freeze(long userId, Currency currency, long amount) {
-		if (amount <= 0) {
-			throw new ApiException(ApiError.PARAMETER_INVALID, "amount", "amount must be greater than 0.");
-		}
+	public void freeze(long userId, Currency currency, BigDecimal amount) {
+		assertGreaterThanZero(amount);
 		SpotAccount spotAccount = getSpotAccount(userId, currency);
 		FrozenAccount frozenAccount = getFrozenAccount(userId, currency);
 		// transfer from spot account to frozen account:
@@ -34,10 +38,8 @@ public class AccountService extends AbstractService {
 		db.update("UPDATE FrozenAccount SET balance = balance + ? WHERE id = ?", amount, frozenAccount.id);
 	}
 
-	public void unfreeze(long userId, Currency currency, long amount) {
-		if (amount <= 0) {
-			throw new ApiException(ApiError.PARAMETER_INVALID, "amount", "amount must be greater than 0.");
-		}
+	public void unfreeze(long userId, Currency currency, BigDecimal amount) {
+		assertGreaterThanZero(amount);
 		SpotAccount spotAccount = getSpotAccount(userId, currency);
 		FrozenAccount frozenAccount = getFrozenAccount(userId, currency);
 		// transfer from spot account to frozen account:
@@ -53,9 +55,9 @@ public class AccountService extends AbstractService {
 				.first();
 		if (spotAccount == null) {
 			spotAccount = new SpotAccount();
-			spotAccount.balance = 0;
-			spotAccount.currency = currency;
 			spotAccount.userId = userId;
+			spotAccount.currency = currency;
+			spotAccount.balance = BigDecimal.ZERO;
 			db.save(spotAccount);
 		}
 		return spotAccount;
@@ -68,7 +70,7 @@ public class AccountService extends AbstractService {
 			frozenAccount = new FrozenAccount();
 			frozenAccount.userId = userId;
 			frozenAccount.currency = currency;
-			frozenAccount.balance = 0;
+			frozenAccount.balance = BigDecimal.ZERO;
 			db.save(frozenAccount);
 		}
 		return frozenAccount;

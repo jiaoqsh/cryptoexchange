@@ -1,5 +1,7 @@
 package com.itranswarp.crypto.account;
 
+import java.math.BigDecimal;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Table;
@@ -18,8 +20,8 @@ public class SpotAccount extends AbstractEntity {
 	@Column(nullable = false, length = 20)
 	public Currency currency;
 
-	@Column(nullable = false)
-	public long balance;
+	@Column(nullable = false, precision = 32, scale = 16)
+	public BigDecimal balance;
 
 	@Override
 	public String toString() {

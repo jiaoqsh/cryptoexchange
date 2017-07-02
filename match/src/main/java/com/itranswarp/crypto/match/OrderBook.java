@@ -1,5 +1,6 @@
 package com.itranswarp.crypto.match;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -24,13 +25,11 @@ public class OrderBook {
 	public static final Comparator<OrderMessage> SORT_SELL = new Comparator<OrderMessage>() {
 		@Override
 		public int compare(OrderMessage o1, OrderMessage o2) {
-			long p1 = o1.price;
-			long p2 = o2.price;
-			if (p1 < p2) {
-				return -1;
-			}
-			if (p1 > p2) {
-				return 1;
+			BigDecimal p1 = o1.price;
+			BigDecimal p2 = o2.price;
+			int n = p1.compareTo(p2);
+			if (n != 0) {
+				return n;
 			}
 			long i1 = o1.id;
 			long i2 = o2.id;
@@ -50,13 +49,11 @@ public class OrderBook {
 	public static final Comparator<OrderMessage> SORT_BUY = new Comparator<OrderMessage>() {
 		@Override
 		public int compare(OrderMessage o1, OrderMessage o2) {
-			long p1 = o1.price;
-			long p2 = o2.price;
-			if (p1 < p2) {
-				return 1;
-			}
-			if (p1 > p2) {
-				return -1;
+			BigDecimal p1 = o1.price;
+			BigDecimal p2 = o2.price;
+			int n = p1.compareTo(p2);
+			if (n != 0) {
+				return n;
 			}
 			long i1 = o1.id;
 			long i2 = o2.id;
@@ -77,29 +74,31 @@ public class OrderBook {
 		this.book = new TreeSet<>(comparator);
 	}
 
-	public List<SnapshotOrder> getSnapshot(int maxItems, long priceDelta) {
+	public List<SnapshotOrder> getSnapshot(int maxItems, BigDecimal priceDelta) {
 		List<SnapshotOrder> list = new ArrayList<>(maxItems);
 		SnapshotOrder lastLiveOrder = null;
-		long currentLevelPrice = 0;
-		long nextLevelPrice = 0;
+		BigDecimal currentLevelPrice = null;
+		BigDecimal nextLevelPrice = null;
 		Iterator<OrderMessage> it = this.book.iterator();
 		while (it.hasNext() && list.size() < maxItems) {
 			OrderMessage order = it.next();
-			if (currentLevelPrice == 0) {
+			if (currentLevelPrice == null) {
 				// init:
 				currentLevelPrice = order.price;
-				nextLevelPrice = currentLevelPrice + priceDelta;
+				nextLevelPrice = currentLevelPrice.add(priceDelta);
 				lastLiveOrder = new SnapshotOrder(order.price, order.amount);
 				list.add(lastLiveOrder);
 			} else {
-				if (order.price < nextLevelPrice) {
+				// if current level = 123.45,
+				// so next level = 123.45 + delta = 124.45 (suppose delta = 1)
+				if (nextLevelPrice.compareTo(order.price) > 0) {
 					// add to current level:
-					lastLiveOrder.amount += order.amount;
+					lastLiveOrder.amount = lastLiveOrder.amount.add(order.amount);
 				} else {
 					// new depth level:
-					while (nextLevelPrice < order.price) {
+					while (nextLevelPrice.compareTo(order.price) < 0) {
 						currentLevelPrice = nextLevelPrice;
-						nextLevelPrice = currentLevelPrice + priceDelta;
+						nextLevelPrice = currentLevelPrice.add(priceDelta);
 					}
 					lastLiveOrder = new SnapshotOrder(order.price, order.amount);
 					list.add(lastLiveOrder);
@@ -137,39 +136,6 @@ public class OrderBook {
 			n++;
 			System.out.println(it.next());
 		}
-	}
-
-	public static void main(String[] args) {
-		// sell:
-		OrderBook sell = new OrderBook(OrderBook.SORT_SELL);
-		for (long id = 1; id < 20; id++) {
-			OrderMessage o = createOrder(OrderType.SELL_LIMIT, id, randomLong(110, 130), randomLong(1, 100));
-			sell.add(o);
-		}
-		sell.dump(true);
-		System.out.println("------------------------------");
-		// buy:
-		OrderBook buy = new OrderBook(OrderBook.SORT_BUY);
-		for (long id = 100; id < 120; id++) {
-			OrderMessage o = createOrder(OrderType.BUY_LIMIT, id, randomLong(100, 120), randomLong(1, 100));
-			buy.add(o);
-		}
-		buy.dump(false);
-	}
-
-	static OrderMessage createOrder(OrderType type, long id, long price, long amount) {
-		Order o = new Order();
-		o.type = type;
-		o.id = id;
-		o.price = price;
-		o.amount = amount;
-		return new OrderMessage(o);
-	}
-
-	static final Random random = new Random();
-
-	static long randomLong(int min, int max) {
-		return random.nextInt(max - min) + min;
 	}
 
 }

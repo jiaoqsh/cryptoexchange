@@ -3,7 +3,7 @@ package com.itranswarp.crypto.order;
 public enum OrderStatus {
 
 	/**
-	 * Order is submitted, but not match.
+	 * Order is submitted, but not match yet.
 	 */
 	SUBMITTED(1),
 
@@ -23,9 +23,9 @@ public enum OrderStatus {
 	PARTIAL_CANCELLED(4),
 
 	/**
-	 * Order is totally cancelled.
+	 * Order is fully cancelled.
 	 */
-	CANCELLED(5);
+	FULLY_CANCELLED(5);
 
 	public final int value;
 

@@ -1,13 +1,15 @@
 package com.itranswarp.crypto.order;
 
+import java.math.BigDecimal;
+
 public class OrderMessage {
 
 	public final long id;
 	public final long userId;
 	public final OrderType type;
-	public final long price;
-	public long amount;
-	public long createdAt;
+	public final BigDecimal price;
+	public BigDecimal amount;
+	public final long createdAt;
 
 	/**
 	 * Create order message from Order entity.
@@ -32,6 +34,6 @@ public class OrderMessage {
 	}
 
 	public String toString() {
-		return String.format("%s: $%4d %4d   id:%d", (type == OrderType.BUY_LIMIT ? "B" : "S"), price, amount, id);
+		return String.format("%s: $%.2f %.4f   id:%d", (type == OrderType.BUY_LIMIT ? "B" : "S"), price, amount, id);
 	}
 }

@@ -2,6 +2,8 @@ package com.itranswarp.crypto.account;
 
 import static org.junit.Assert.*;
 
+import java.math.BigDecimal;
+
 import org.junit.Test;
 
 import org.junit.Before;
@@ -15,6 +17,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import com.itranswarp.crypto.store.DbTestConfiguration;
+import com.itranswarp.crypto.ApiException;
 import com.itranswarp.crypto.store.DbTestBase;
 import com.itranswarp.crypto.symbol.Currency;
 
@@ -46,25 +49,57 @@ public class AccountServiceTest extends DbTestBase {
 		SpotAccount sa = accountService.getSpotAccount(USER_A, Currency.CNY);
 		assertNotNull(sa);
 		assertTrue(sa.id > 0);
-		assertEquals(0, sa.balance);
-		accountService.deposit(USER_A, Currency.CNY, 130000);
+		assertTrue(BigDecimal.ZERO.compareTo(sa.balance) == 0);
+		accountService.deposit(USER_A, Currency.CNY, new BigDecimal("130000.12"));
+		// query:
 		SpotAccount sa2 = accountService.getSpotAccount(USER_A, Currency.CNY);
-		assertEquals(130000, sa2.balance);
+		assertTrue(new BigDecimal("130000.12").compareTo(sa2.balance) == 0);
 	}
 
 	@Test
 	public void testFreeze() {
 		final long USER_A = 12345;
-		accountService.deposit(USER_A, Currency.CNY, 130000);
-		accountService.freeze(USER_A, Currency.CNY, 120000);
+		accountService.deposit(USER_A, Currency.CNY, new BigDecimal("130000.25"));
+		accountService.freeze(USER_A, Currency.CNY, new BigDecimal("120000.12"));
+		// query:
+		SpotAccount sa2 = accountService.getSpotAccount(USER_A, Currency.CNY);
+		assertTrue(new BigDecimal("10000.13").compareTo(sa2.balance) == 0);
+	}
+
+	@Test
+	public void testFreezeAll() {
+		final long USER_A = 12345;
+		accountService.deposit(USER_A, Currency.CNY, new BigDecimal("130000.25"));
+		accountService.freeze(USER_A, Currency.CNY, new BigDecimal("130000.25"));
+		// query:
+		SpotAccount sa2 = accountService.getSpotAccount(USER_A, Currency.CNY);
+		assertTrue(BigDecimal.ZERO.compareTo(sa2.balance) == 0);
+	}
+
+	@Test(expected = ApiException.class)
+	public void testFreezeFailed() {
+		final long USER_A = 12345;
+		accountService.deposit(USER_A, Currency.CNY, new BigDecimal("130000.25"));
+		accountService.freeze(USER_A, Currency.CNY, new BigDecimal("130000.26"));
 	}
 
 	@Test
 	public void testUnfreeze() {
 		final long USER_A = 12345;
-		accountService.deposit(USER_A, Currency.CNY, 130000);
-		accountService.freeze(USER_A, Currency.CNY, 120000);
-		accountService.unfreeze(USER_A, Currency.CNY, 120000);
+		accountService.deposit(USER_A, Currency.CNY, new BigDecimal("130000.25"));
+		accountService.freeze(USER_A, Currency.CNY, new BigDecimal("120000.12"));
+		accountService.unfreeze(USER_A, Currency.CNY, new BigDecimal("120000.12"));
+		// query:
+		SpotAccount sa2 = accountService.getSpotAccount(USER_A, Currency.CNY);
+		assertTrue(new BigDecimal("130000.25").compareTo(sa2.balance) == 0);
+	}
+
+	@Test(expected = ApiException.class)
+	public void testUnfreezeFailed() {
+		final long USER_A = 12345;
+		accountService.deposit(USER_A, Currency.CNY, new BigDecimal("130000.25"));
+		accountService.freeze(USER_A, Currency.CNY, new BigDecimal("120000.12"));
+		accountService.unfreeze(USER_A, Currency.CNY, new BigDecimal("120000.13"));
 	}
 
 	@Test
@@ -72,7 +107,7 @@ public class AccountServiceTest extends DbTestBase {
 		final long USER_A = 12345;
 		SpotAccount sa = accountService.getSpotAccount(USER_A, Currency.CNY);
 		assertNotNull(sa);
-		assertEquals(0, sa.balance);
+		assertTrue(BigDecimal.ZERO.compareTo(sa.balance) == 0);
 	}
 
 	@Test
@@ -80,7 +115,7 @@ public class AccountServiceTest extends DbTestBase {
 		final long USER_A = 12345;
 		FrozenAccount fa = accountService.getFrozenAccount(USER_A, Currency.CNY);
 		assertNotNull(fa);
-		assertEquals(0, fa.balance);
+		assertTrue(BigDecimal.ZERO.compareTo(fa.balance) == 0);
 	}
 
 }

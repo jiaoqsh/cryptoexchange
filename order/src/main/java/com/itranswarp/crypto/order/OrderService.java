@@ -1,36 +1,46 @@
 package com.itranswarp.crypto.order;
 
+import java.math.BigDecimal;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import com.itranswarp.crypto.queue.MessageQueue;
 import com.itranswarp.crypto.store.AbstractService;
+import com.itranswarp.crypto.symbol.Symbol;
 
 @Component
 public class OrderService extends AbstractService {
 
-	final MessageQueue<OrderMessage> orderMessageQueue;
+	@Autowired
+	OrderHandlerService orderHandlerService;
 
-	public OrderService(@Autowired @Qualifier("orderMessageQueue") MessageQueue<OrderMessage> orderMessageQueue) {
-		this.orderMessageQueue = orderMessageQueue;
-	}
+	@Autowired
+	@Qualifier("orderMessageQueue")
+	MessageQueue<OrderMessage> orderMessageQueue;
 
-	public void createBuyLimitOrder(long price, long amount) throws InterruptedException {
+	public Order createBuyLimitOrder(Symbol symbol, BigDecimal price, BigDecimal amount) throws InterruptedException {
 		Order order = new Order();
-		order.amount = amount;
-		order.price = price;
+		order.baseCurrency = symbol.base;
+		order.quoteCurrency = symbol.quote;
+		order.amount = symbol.base.adjust(amount);
+		order.price = symbol.quote.adjust(price);
 		order.type = OrderType.BUY_LIMIT;
-		db.save(order);
+		orderHandlerService.saveOrder(order);
 		orderMessageQueue.sendMessage(new OrderMessage(order));
+		return order;
 	}
 
-	public void createSellLimitOrder(long price, long amount) throws InterruptedException {
+	public Order createSellLimitOrder(Symbol symbol, BigDecimal price, BigDecimal amount) throws InterruptedException {
 		Order order = new Order();
-		order.amount = amount;
-		order.price = price;
+		order.baseCurrency = symbol.base;
+		order.quoteCurrency = symbol.quote;
+		order.amount = symbol.base.adjust(amount);
+		order.price = symbol.quote.adjust(price);
 		order.type = OrderType.SELL_LIMIT;
-		db.save(order);
+		orderHandlerService.saveOrder(order);
 		orderMessageQueue.sendMessage(new OrderMessage(order));
+		return order;
 	}
 }

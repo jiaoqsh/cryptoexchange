@@ -1,5 +1,7 @@
 package com.itranswarp.crypto.match;
 
+import java.math.BigDecimal;
+
 /**
  * Snapshot for order book.
  * 
@@ -7,10 +9,10 @@ package com.itranswarp.crypto.match;
  */
 public class SnapshotOrder {
 
-	public final long price;
-	public long amount;
+	public final BigDecimal price;
+	public BigDecimal amount;
 
-	public SnapshotOrder(long price, long amount) {
+	public SnapshotOrder(BigDecimal price, BigDecimal amount) {
 		this.price = price;
 		this.amount = amount;
 	}

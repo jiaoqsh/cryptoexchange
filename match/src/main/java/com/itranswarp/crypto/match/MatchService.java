@@ -1,7 +1,9 @@
 package com.itranswarp.crypto.match;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -37,7 +39,7 @@ public class MatchService extends AbstractRunnableService {
 	final OrderBook sellBook;
 
 	// track market price:
-	long marketPrice = 0L;
+	BigDecimal marketPrice = BigDecimal.ZERO;
 
 	// matcher internal status:
 	HashStatus hashStatus = new HashStatus();
@@ -107,22 +109,22 @@ public class MatchService extends AbstractRunnableService {
 				// empty order book:
 				break;
 			}
-			if (buyTaker.price < sellMaker.price) {
+			if (buyTaker.price.compareTo(sellMaker.price) < 0) {
 				break;
 			}
 			// match with sellMaker.price:
 			this.marketPrice = sellMaker.price;
 			// max amount to exchange:
-			long amount = Math.min(buyTaker.amount, sellMaker.amount);
-			buyTaker.amount -= amount;
-			sellMaker.amount -= amount;
+			BigDecimal amount = buyTaker.amount.min(sellMaker.amount);
+			buyTaker.amount = buyTaker.amount.subtract(amount);
+			sellMaker.amount = sellMaker.amount.subtract(amount);
 			notifyTicker(buyTaker.createdAt, this.marketPrice, amount);
 			matchResult.addMatchRecord(new MatchRecord(buyTaker.id, sellMaker.id, this.marketPrice, amount));
 			updateHashStatus(buyTaker, sellMaker, this.marketPrice, amount);
-			if (sellMaker.amount == 0L) {
+			if (sellMaker.amount.compareTo(BigDecimal.ZERO) == 0) {
 				this.sellBook.remove(sellMaker);
 			}
-			if (buyTaker.amount == 0L) {
+			if (buyTaker.amount.compareTo(BigDecimal.ZERO) == 0) {
 				buyTaker = null;
 				break;
 			}
@@ -143,22 +145,22 @@ public class MatchService extends AbstractRunnableService {
 				// empty order book:
 				break;
 			}
-			if (sellTaker.price > buyMaker.price) {
+			if (sellTaker.price.compareTo(buyMaker.price) > 0) {
 				break;
 			}
 			// match with buyMaker.price:
 			this.marketPrice = buyMaker.price;
 			// max amount to match:
-			long amount = Math.min(sellTaker.amount, buyMaker.amount);
-			sellTaker.amount -= amount;
-			buyMaker.amount -= amount;
+			BigDecimal amount = sellTaker.amount.min(buyMaker.amount);
+			sellTaker.amount = sellTaker.amount.subtract(amount);
+			buyMaker.amount = buyMaker.amount.subtract(amount);
 			notifyTicker(sellTaker.createdAt, this.marketPrice, amount);
 			matchResult.addMatchRecord(new MatchRecord(sellTaker.id, buyMaker.id, this.marketPrice, amount));
 			updateHashStatus(sellTaker, buyMaker, this.marketPrice, amount);
-			if (buyMaker.amount == 0L) {
+			if (buyMaker.amount.compareTo(BigDecimal.ZERO) == 0) {
 				this.buyBook.remove(buyMaker);
 			}
-			if (sellTaker.amount == 0L) {
+			if (sellTaker.amount.compareTo(BigDecimal.ZERO) == 0) {
 				sellTaker = null;
 				break;
 			}
@@ -171,7 +173,7 @@ public class MatchService extends AbstractRunnableService {
 		}
 	}
 
-	void notifyTicker(long time, long price, long amount) throws InterruptedException {
+	void notifyTicker(long time, BigDecimal price, BigDecimal amount) throws InterruptedException {
 		Tick tick = new Tick(time, price, amount);
 		this.tickMessageQueue.sendMessage(tick);
 	}
@@ -180,16 +182,16 @@ public class MatchService extends AbstractRunnableService {
 		this.matchResultMessageQueue.sendMessage(matchResult);
 	}
 
-	private final ByteBuffer hashBuffer = ByteBuffer.allocate(Long.BYTES * 4 + Integer.BYTES * 2);
+	private final ByteBuffer hashBuffer = ByteBuffer.allocate(128);
 
-	private void updateHashStatus(OrderMessage taker, OrderMessage maker, long price, long amount) {
+	private void updateHashStatus(OrderMessage taker, OrderMessage maker, BigDecimal price, BigDecimal amount) {
 		hashBuffer.clear();
 		hashBuffer.putLong(taker.id);
 		hashBuffer.putInt(taker.type.value);
 		hashBuffer.putLong(maker.id);
 		hashBuffer.putInt(maker.type.value);
-		hashBuffer.putLong(price);
-		hashBuffer.putLong(amount);
+		hashBuffer.put(price.toString().getBytes(StandardCharsets.UTF_8));
+		hashBuffer.put(amount.toString().getBytes(StandardCharsets.UTF_8));
 		this.hashStatus.updateStatus(hashBuffer);
 	}
 
@@ -200,7 +202,7 @@ public class MatchService extends AbstractRunnableService {
 	public void dump() {
 		System.out.println(String.format("S: %5d more", this.sellBook.size()));
 		this.sellBook.dump(true);
-		System.out.println(String.format("P: $%4d ----------------", this.marketPrice));
+		System.out.println(String.format("P: $%.4f ----------------", this.marketPrice));
 		this.buyBook.dump(false);
 		System.out.println(String.format("B: %5d more", this.buyBook.size()));
 		System.out.println(String.format("%032x\n", new BigInteger(1, this.hashStatus.getStatus())));

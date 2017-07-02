@@ -17,7 +17,7 @@ import com.itranswarp.crypto.store.AbstractRunnableService;
 public class ClearingService extends AbstractRunnableService {
 
 	@Autowired
-	ClearingHandler clearingHandler;
+	ClearingHandlerService clearingHandler;
 
 	final MessageQueue<MatchResult> matchResultMessageQueue;
 

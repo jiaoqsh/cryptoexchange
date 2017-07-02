@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.itranswarp.crypto.account.AccountService;
 import com.itranswarp.crypto.order.Order;
 import com.itranswarp.crypto.order.OrderService;
+import com.itranswarp.crypto.order.OrderType;
+import com.itranswarp.crypto.symbol.Symbol;
 import com.itranswarp.crypto.user.UserService;
 
 @RestController
@@ -28,7 +30,7 @@ public class RestApiController {
 		return SimpleResponse.of(System.currentTimeMillis());
 	}
 
-	public Order createOrder() {
+	public Order createOrder(Symbol symbol, OrderType orderType, long price, long amount) {
 		return null;
 	}
 
