@@ -26,7 +26,7 @@ public class OrderBookTest {
 
 	public static void main(String[] args) {
 		// sell:
-		OrderBook sell = new OrderBook(OrderBook.SORT_SELL);
+		OrderBook sell = new OrderBook(OrderBook.OrderBookType.SELL);
 		for (long id = 1; id < 20; id++) {
 			OrderMessage o = createOrder(OrderType.SELL_LIMIT, id, randomDecimal(110, 130), randomDecimal(1, 100));
 			sell.add(o);
@@ -34,7 +34,7 @@ public class OrderBookTest {
 		sell.dump(true);
 		System.out.println("------------------------------");
 		// buy:
-		OrderBook buy = new OrderBook(OrderBook.SORT_BUY);
+		OrderBook buy = new OrderBook(OrderBook.OrderBookType.BUY);
 		for (long id = 100; id < 120; id++) {
 			OrderMessage o = createOrder(OrderType.BUY_LIMIT, id, randomDecimal(100, 120), randomDecimal(1, 100));
 			buy.add(o);

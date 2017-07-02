@@ -50,8 +50,8 @@ public class MatchService extends AbstractRunnableService {
 		this.orderMessageQueue = orderMessageQueue;
 		this.tickMessageQueue = tickMessageQueue;
 		this.matchResultMessageQueue = matchResultMessageQueue;
-		this.buyBook = new OrderBook(OrderBook.SORT_BUY);
-		this.sellBook = new OrderBook(OrderBook.SORT_SELL);
+		this.buyBook = new OrderBook(OrderBook.OrderBookType.BUY);
+		this.sellBook = new OrderBook(OrderBook.OrderBookType.SELL);
 	}
 
 	@Override

@@ -5,12 +5,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Random;
 import java.util.TreeSet;
 
-import com.itranswarp.crypto.order.Order;
 import com.itranswarp.crypto.order.OrderMessage;
-import com.itranswarp.crypto.order.OrderType;
 
 /**
  * Order book for sell or buy.
@@ -19,10 +16,14 @@ import com.itranswarp.crypto.order.OrderType;
  */
 public class OrderBook {
 
+	public static enum OrderBookType {
+		SELL, BUY
+	}
+
 	/**
 	 * Sorted by sell.
 	 */
-	public static final Comparator<OrderMessage> SORT_SELL = new Comparator<OrderMessage>() {
+	static final Comparator<OrderMessage> SORT_SELL = new Comparator<OrderMessage>() {
 		@Override
 		public int compare(OrderMessage o1, OrderMessage o2) {
 			BigDecimal p1 = o1.price;
@@ -46,7 +47,7 @@ public class OrderBook {
 	/**
 	 * Sorted by buy.
 	 */
-	public static final Comparator<OrderMessage> SORT_BUY = new Comparator<OrderMessage>() {
+	static final Comparator<OrderMessage> SORT_BUY = new Comparator<OrderMessage>() {
 		@Override
 		public int compare(OrderMessage o1, OrderMessage o2) {
 			BigDecimal p1 = o1.price;
@@ -70,8 +71,8 @@ public class OrderBook {
 	// holds all orders:
 	TreeSet<OrderMessage> book;
 
-	public OrderBook(Comparator<OrderMessage> comparator) {
-		this.book = new TreeSet<>(comparator);
+	public OrderBook(OrderBookType type) {
+		this.book = new TreeSet<>(type == OrderBookType.SELL ? SORT_SELL : SORT_BUY);
 	}
 
 	public List<SnapshotOrder> getSnapshot(int maxItems, BigDecimal priceDelta) {
