@@ -29,8 +29,11 @@ public class OrderBook {
 			BigDecimal p1 = o1.price;
 			BigDecimal p2 = o2.price;
 			int n = p1.compareTo(p2);
-			if (n != 0) {
-				return n;
+			if (n < 0) {
+				return -1;
+			}
+			if (n > 0) {
+				return 1;
 			}
 			long i1 = o1.id;
 			long i2 = o2.id;
@@ -53,8 +56,11 @@ public class OrderBook {
 			BigDecimal p1 = o1.price;
 			BigDecimal p2 = o2.price;
 			int n = p1.compareTo(p2);
-			if (n != 0) {
-				return n;
+			if (n < 0) {
+				return 1;
+			}
+			if (n > 0) {
+				return -1;
 			}
 			long i1 = o1.id;
 			long i2 = o2.id;
