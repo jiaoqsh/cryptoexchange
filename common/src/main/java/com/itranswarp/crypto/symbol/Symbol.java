@@ -1,7 +1,9 @@
 package com.itranswarp.crypto.symbol;
 
+import java.util.Objects;
+
 /**
- * Define symbol by base currency / quote currency.
+ * Define symbol by base currency / quote currency. e.g. "BTC/CNY"
  * 
  * @author liaoxuefeng
  */
@@ -24,6 +26,16 @@ public class Symbol {
 		this.quote = quote;
 	}
 
+	public Symbol valueOf(String symbol) {
+		int n = symbol.indexOf('/');
+		if (n == (-1)) {
+			throw new IllegalArgumentException("Invalid symbol: " + symbol);
+		}
+		Currency base = Currency.valueOf(symbol.substring(0, n));
+		Currency quote = Currency.valueOf(symbol.substring(n + 1));
+		return new Symbol(base, quote);
+	}
+
 	/**
 	 * Name of symbol.
 	 * 
@@ -39,5 +51,19 @@ public class Symbol {
 	@Override
 	public String toString() {
 		return name();
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (o instanceof Symbol) {
+			Symbol sym = (Symbol) o;
+			return this.base == sym.base && this.quote == sym.quote;
+		}
+		return false;
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(this.base.name(), this.quote.name());
 	}
 }

@@ -1,4 +1,4 @@
-package com.itranswarp.crypto.order;
+package com.itranswarp.crypto.enums;
 
 public enum OrderType {
 

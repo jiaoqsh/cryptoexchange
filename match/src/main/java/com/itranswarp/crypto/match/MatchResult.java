@@ -11,7 +11,13 @@ import java.util.List;
  */
 public class MatchResult {
 
+	public final long timestamp;
+
 	private List<MatchRecord> matchRecords = null;
+
+	public MatchResult(long timestamp) {
+		this.timestamp = timestamp;
+	}
 
 	public List<MatchRecord> getMatchRecords() {
 		return matchRecords == null ? Collections.emptyList() : matchRecords;

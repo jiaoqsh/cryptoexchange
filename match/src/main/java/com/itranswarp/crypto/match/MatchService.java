@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
+import com.itranswarp.crypto.enums.OrderStatus;
+import com.itranswarp.crypto.enums.OrderType;
 import com.itranswarp.crypto.order.OrderMessage;
 import com.itranswarp.crypto.queue.MessageQueue;
 import com.itranswarp.crypto.store.AbstractRunnableService;
@@ -83,10 +85,10 @@ public class MatchService extends AbstractRunnableService {
 	void processOrder(OrderMessage order) throws InterruptedException {
 		switch (order.type) {
 		case BUY_LIMIT:
-			processBuyLimit(order);
+			processLimitOrder(order, order.type, this.sellBook);
 			break;
 		case SELL_LIMIT:
-			processSellLimit(order);
+			processLimitOrder(order, order.type, this.buyBook);
 			break;
 		case BUY_MARKET:
 			throw new RuntimeException("Unsupported type.");
@@ -101,72 +103,43 @@ public class MatchService extends AbstractRunnableService {
 		}
 	}
 
-	void processBuyLimit(OrderMessage buyTaker) throws InterruptedException {
-		MatchResult matchResult = new MatchResult();
+	void processLimitOrder(OrderMessage taker, OrderType orderType, OrderBook orderBook) throws InterruptedException {
+		MatchResult matchResult = new MatchResult(taker.createdAt);
 		for (;;) {
-			OrderMessage sellMaker = this.sellBook.getFirst();
-			if (sellMaker == null) {
+			OrderMessage maker = orderBook.getFirst();
+			if (maker == null) {
 				// empty order book:
 				break;
 			}
-			if (buyTaker.price.compareTo(sellMaker.price) < 0) {
+			if (orderType == OrderType.BUY_LIMIT && taker.price.compareTo(maker.price) < 0) {
+				break;
+			} else if (orderType == OrderType.SELL_LIMIT && taker.price.compareTo(maker.price) > 0) {
 				break;
 			}
 			// match with sellMaker.price:
-			this.marketPrice = sellMaker.price;
+			this.marketPrice = maker.price;
 			// max amount to exchange:
-			BigDecimal amount = buyTaker.amount.min(sellMaker.amount);
-			buyTaker.amount = buyTaker.amount.subtract(amount);
-			sellMaker.amount = sellMaker.amount.subtract(amount);
-			notifyTicker(buyTaker.createdAt, this.marketPrice, amount);
-			matchResult.addMatchRecord(new MatchRecord(buyTaker.id, sellMaker.id, this.marketPrice, amount));
-			updateHashStatus(buyTaker, sellMaker, this.marketPrice, amount);
-			if (sellMaker.amount.compareTo(BigDecimal.ZERO) == 0) {
-				this.sellBook.remove(sellMaker);
+			BigDecimal amount = taker.amount.min(maker.amount);
+			taker.amount = taker.amount.subtract(amount);
+			maker.amount = maker.amount.subtract(amount);
+			// is maker fully filled?
+			OrderStatus makerStatus = maker.amount.compareTo(BigDecimal.ZERO) == 0 ? OrderStatus.FULLY_FILLED
+					: OrderStatus.PARTIAL_FILLED;
+			notifyTicker(taker.createdAt, this.marketPrice, amount);
+			matchResult.addMatchRecord(new MatchRecord(taker.id, maker.id, this.marketPrice, amount, makerStatus));
+			updateHashStatus(taker, maker, this.marketPrice, amount);
+			// should remove maker from order book?
+			if (makerStatus == OrderStatus.FULLY_FILLED) {
+				orderBook.remove(maker);
 			}
-			if (buyTaker.amount.compareTo(BigDecimal.ZERO) == 0) {
-				buyTaker = null;
+			// should remove taker from order book?
+			if (taker.amount.compareTo(BigDecimal.ZERO) == 0) {
+				taker = null;
 				break;
 			}
 		}
-		if (buyTaker != null) {
-			this.buyBook.add(buyTaker);
-		}
-		if (!matchResult.isEmpty()) {
-			notifyMatchResult(matchResult);
-		}
-	}
-
-	void processSellLimit(OrderMessage sellTaker) throws InterruptedException {
-		MatchResult matchResult = new MatchResult();
-		for (;;) {
-			OrderMessage buyMaker = this.buyBook.getFirst();
-			if (buyMaker == null) {
-				// empty order book:
-				break;
-			}
-			if (sellTaker.price.compareTo(buyMaker.price) > 0) {
-				break;
-			}
-			// match with buyMaker.price:
-			this.marketPrice = buyMaker.price;
-			// max amount to match:
-			BigDecimal amount = sellTaker.amount.min(buyMaker.amount);
-			sellTaker.amount = sellTaker.amount.subtract(amount);
-			buyMaker.amount = buyMaker.amount.subtract(amount);
-			notifyTicker(sellTaker.createdAt, this.marketPrice, amount);
-			matchResult.addMatchRecord(new MatchRecord(sellTaker.id, buyMaker.id, this.marketPrice, amount));
-			updateHashStatus(sellTaker, buyMaker, this.marketPrice, amount);
-			if (buyMaker.amount.compareTo(BigDecimal.ZERO) == 0) {
-				this.buyBook.remove(buyMaker);
-			}
-			if (sellTaker.amount.compareTo(BigDecimal.ZERO) == 0) {
-				sellTaker = null;
-				break;
-			}
-		}
-		if (sellTaker != null) {
-			this.sellBook.add(sellTaker);
+		if (taker != null) {
+			orderBook.add(taker);
 		}
 		if (!matchResult.isEmpty()) {
 			notifyMatchResult(matchResult);
