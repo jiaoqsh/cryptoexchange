@@ -8,7 +8,7 @@ import javax.persistence.UniqueConstraint;
 import com.itranswarp.crypto.store.AbstractEntity;
 
 @Entity
-@Table(uniqueConstraints = @UniqueConstraint(columnNames = { "userId" }))
+@Table(uniqueConstraints = @UniqueConstraint(name = "UNI_USERID", columnNames = { "userId" }))
 public class PasswordAuth extends AbstractEntity {
 
 	@Column(nullable = false, updatable = false)
