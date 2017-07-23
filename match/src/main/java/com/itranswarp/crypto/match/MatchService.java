@@ -142,8 +142,12 @@ public class MatchService extends AbstractRunnableService {
 			orderBook.add(taker);
 		}
 		if (!matchResult.isEmpty()) {
+			matchResult.takerStatus = taker == null ? OrderStatus.FULLY_FILLED : OrderStatus.PARTIAL_FILLED;
 			notifyMatchResult(matchResult);
 		}
+	}
+
+	void processMarketOrder(OrderMessage taker, OrderType orderType, OrderBook orderBook) throws InterruptedException {
 	}
 
 	void notifyTicker(long time, BigDecimal price, BigDecimal amount) throws InterruptedException {

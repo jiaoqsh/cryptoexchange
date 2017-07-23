@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import com.itranswarp.crypto.enums.OrderStatus;
+
 /**
  * A lazy-initialized list contains match records.
  * 
@@ -11,6 +13,7 @@ import java.util.List;
  */
 public class MatchResult {
 
+	public OrderStatus takerStatus;
 	public final long timestamp;
 
 	private List<MatchRecord> matchRecords = null;

@@ -8,9 +8,9 @@ import java.util.Random;
 
 import org.junit.Test;
 
+import com.itranswarp.crypto.enums.OrderType;
 import com.itranswarp.crypto.order.Order;
 import com.itranswarp.crypto.order.OrderMessage;
-import com.itranswarp.crypto.order.OrderType;
 
 public class OrderBookTest {
 
