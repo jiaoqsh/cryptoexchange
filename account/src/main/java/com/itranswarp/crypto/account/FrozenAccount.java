@@ -11,7 +11,7 @@ import com.itranswarp.crypto.store.AbstractEntity;
 import com.itranswarp.crypto.symbol.Currency;
 
 @Entity
-@Table(uniqueConstraints = @UniqueConstraint(columnNames = { "userId", "currency" }))
+@Table(uniqueConstraints = @UniqueConstraint(name = "UNI_USERID_CURRENCY", columnNames = { "userId", "currency" }))
 public class FrozenAccount extends AbstractEntity {
 
 	@Column(nullable = false)

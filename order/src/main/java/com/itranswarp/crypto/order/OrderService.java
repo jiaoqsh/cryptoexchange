@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
+import com.itranswarp.crypto.enums.OrderType;
 import com.itranswarp.crypto.queue.MessageQueue;
 import com.itranswarp.crypto.store.AbstractService;
 import com.itranswarp.crypto.symbol.Symbol;

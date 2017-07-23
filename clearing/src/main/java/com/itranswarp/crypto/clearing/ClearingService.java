@@ -26,7 +26,7 @@ public class ClearingService extends AbstractRunnableService {
 		this.matchResultMessageQueue = matchResultMessageQueue;
 	}
 
-	void processMatchResult(MatchResult matchResult) {
+	void processMatchResult(MatchResult matchResult ) {
 		clearingHandler.processMatchResult(matchResult);
 	}
 

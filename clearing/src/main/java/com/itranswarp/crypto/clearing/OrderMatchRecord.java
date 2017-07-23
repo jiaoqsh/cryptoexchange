@@ -1,33 +1,46 @@
 package com.itranswarp.crypto.clearing;
 
-import javax.persistence.Entity;
-import javax.persistence.Table;
-import javax.persistence.UniqueConstraint;
+import java.math.BigDecimal;
 
+import javax.persistence.Entity;
+import javax.persistence.Index;
+import javax.persistence.Table;
+
+import com.itranswarp.crypto.enums.MatchType;
 import com.itranswarp.crypto.store.AbstractEntity;
 
+/**
+ * Store the match details for each order.
+ * 
+ * @author liaoxuefeng
+ */
 @Entity
-@Table(uniqueConstraints = @UniqueConstraint(columnNames = { "takerOrderId", "makerOrderId" }))
-public class ClearingRecord extends AbstractEntity {
+@Table(indexes = @Index(name = "IDX_ORDERID", columnList = "orderId"))
+public class OrderMatchRecord extends AbstractEntity {
 
 	/**
-	 * Taker's order id
+	 * Order id.
 	 */
-	public long takerOrderId;
+	public long orderId;
 
 	/**
-	 * Maker's order id
+	 * Match type.
 	 */
-	public long makerOrderId;
+	public MatchType matchType;
 
 	/**
 	 * The match price.
 	 */
-	public long matchPrice;
+	public BigDecimal matchPrice;
 
 	/**
 	 * The match amount.
 	 */
-	public long matchAmount;
+	public BigDecimal matchAmount;
+
+	/**
+	 * The match time.
+	 */
+	public long matchedAt;
 
 }

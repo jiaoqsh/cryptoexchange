@@ -2,6 +2,8 @@ package com.itranswarp.crypto.order;
 
 import java.math.BigDecimal;
 
+import com.itranswarp.crypto.enums.OrderType;
+
 public class OrderMessage {
 
 	public final long id;
