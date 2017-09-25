@@ -12,7 +12,7 @@ import org.junit.Test;
 import com.itranswarp.crypto.enums.OrderType;
 import com.itranswarp.crypto.match.OrderBook;
 import com.itranswarp.crypto.order.Order;
-import com.itranswarp.crypto.order.OrderMessage;
+import com.itranswarp.crypto.sequence.OrderMessage;
 
 public class OrderMessageInTreeSetTest {
 
@@ -61,7 +61,7 @@ public class OrderMessageInTreeSetTest {
 		o.id = id;
 		o.price = BigDecimal.valueOf(price);
 		o.amount = BigDecimal.valueOf(amount);
-		return new OrderMessage(o);
+		return new OrderMessage(id, o);
 	}
 
 }

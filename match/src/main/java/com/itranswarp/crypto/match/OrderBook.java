@@ -7,7 +7,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.TreeSet;
 
-import com.itranswarp.crypto.order.OrderMessage;
+import com.itranswarp.crypto.sequence.OrderMessage;
 
 /**
  * Order book for sell or buy.
@@ -74,40 +74,33 @@ public class OrderBook {
 		}
 	};
 
+	final OrderBookType type;
 	// holds all orders:
-	TreeSet<OrderMessage> book;
+	final TreeSet<OrderMessage> book;
 
 	public OrderBook(OrderBookType type) {
+		this.type = type;
 		this.book = new TreeSet<>(type == OrderBookType.SELL ? SORT_SELL : SORT_BUY);
 	}
 
-	public List<SnapshotOrder> getSnapshot(int maxItems, BigDecimal priceDelta) {
-		List<SnapshotOrder> list = new ArrayList<>(maxItems);
-		SnapshotOrder lastLiveOrder = null;
-		BigDecimal currentLevelPrice = null;
-		BigDecimal nextLevelPrice = null;
+	public List<OrderSnapshot> getSnapshot(int maxItems) {
+		List<OrderSnapshot> list = new ArrayList<>(maxItems);
+		OrderSnapshot lastLiveOrder = null;
 		Iterator<OrderMessage> it = this.book.iterator();
-		while (it.hasNext() && list.size() < maxItems) {
+		while (it.hasNext()) {
 			OrderMessage order = it.next();
-			if (currentLevelPrice == null) {
+			if (lastLiveOrder == null) {
 				// init:
-				currentLevelPrice = order.price;
-				nextLevelPrice = currentLevelPrice.add(priceDelta);
-				lastLiveOrder = new SnapshotOrder(order.price, order.amount);
+				lastLiveOrder = new OrderSnapshot(order.price, order.amount);
 				list.add(lastLiveOrder);
 			} else {
-				// if current level = 123.45,
-				// so next level = 123.45 + delta = 124.45 (suppose delta = 1)
-				if (nextLevelPrice.compareTo(order.price) > 0) {
-					// add to current level:
+				if (order.price.equals(lastLiveOrder.price)) {
 					lastLiveOrder.amount = lastLiveOrder.amount.add(order.amount);
 				} else {
-					// new depth level:
-					while (nextLevelPrice.compareTo(order.price) < 0) {
-						currentLevelPrice = nextLevelPrice;
-						nextLevelPrice = currentLevelPrice.add(priceDelta);
+					if (list.size() >= maxItems) {
+						break;
 					}
-					lastLiveOrder = new SnapshotOrder(order.price, order.amount);
+					lastLiveOrder = new OrderSnapshot(order.price, order.amount);
 					list.add(lastLiveOrder);
 				}
 			}

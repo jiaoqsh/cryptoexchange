@@ -7,12 +7,12 @@ import java.math.BigDecimal;
  * 
  * @author liaoxuefeng
  */
-public class SnapshotOrder {
+public class OrderSnapshot {
 
 	public final BigDecimal price;
 	public BigDecimal amount;
 
-	public SnapshotOrder(BigDecimal price, BigDecimal amount) {
+	public OrderSnapshot(BigDecimal price, BigDecimal amount) {
 		this.price = price;
 		this.amount = amount;
 	}

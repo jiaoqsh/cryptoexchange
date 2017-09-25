@@ -11,8 +11,8 @@ import org.junit.Test;
 import com.itranswarp.crypto.RunnableResource;
 import com.itranswarp.crypto.enums.OrderType;
 import com.itranswarp.crypto.order.Order;
-import com.itranswarp.crypto.order.OrderMessage;
 import com.itranswarp.crypto.queue.MessageQueue;
+import com.itranswarp.crypto.sequence.OrderMessage;
 
 public class MatchServiceTest {
 
@@ -24,8 +24,8 @@ public class MatchServiceTest {
 	public void testDuplicateEngine() throws Exception {
 		MessageQueue<OrderMessage> orderQueue1 = new MessageQueue<>(10000);
 		MessageQueue<OrderMessage> orderQueue2 = new MessageQueue<>(10000);
-		MessageQueue<Tick> tickQueue1 = new MessageQueue<>(1000);
-		MessageQueue<Tick> tickQueue2 = new MessageQueue<>(1000);
+		MessageQueue<TickMessage> tickQueue1 = new MessageQueue<>(1000);
+		MessageQueue<TickMessage> tickQueue2 = new MessageQueue<>(1000);
 		MessageQueue<MatchResult> matchResultQueue1 = new MessageQueue<>(1000000);
 		MessageQueue<MatchResult> matchResultQueue2 = new MessageQueue<>(1000000);
 
@@ -51,15 +51,18 @@ public class MatchServiceTest {
 		long startTime = System.currentTimeMillis();
 		for (long id = 10; id < NUM; id++) {
 			boolean buy = random.nextInt() % 2 == 0;
-			long price = matcher1.marketPrice.longValue() + (buy ? randomLong(-1000, 500) : randomLong(-500, 1000));
+			long price = 2000 + (buy ? randomLong(-1000, 500) : randomLong(-500, 1000));
 			long amount = 1 + randomLong(1, 500) / (NUM >> 17);
 			totalAmount += amount;
 			orderQueue1.sendMessage(createOrder(buy ? OrderType.BUY_LIMIT : OrderType.SELL_LIMIT, id, price, amount));
 			orderQueue2.sendMessage(createOrder(buy ? OrderType.BUY_LIMIT : OrderType.SELL_LIMIT, id, price, amount));
 			if ((id % 1000L) == 0L) {
+				System.out.print('.');
 				Thread.sleep(1);
 			}
 		}
+		System.out.println();
+		Thread.sleep(1000);
 		// shutdown:
 		matcher1.shutdown();
 		matcher2.shutdown();
@@ -91,7 +94,7 @@ public class MatchServiceTest {
 		o.id = id;
 		o.price = BigDecimal.valueOf(price);
 		o.amount = BigDecimal.valueOf(amount);
-		return new OrderMessage(o);
+		return new OrderMessage(id, o);
 	}
 
 	static final Random random = new Random();
@@ -104,12 +107,12 @@ public class MatchServiceTest {
 
 class TickHandler implements RunnableResource {
 
-	final MessageQueue<Tick> tickQueue;
+	final MessageQueue<TickMessage> tickQueue;
 	int count = 0;
 	HashStatus status = new HashStatus();
 	Thread thread;
 
-	public TickHandler(MessageQueue<Tick> tickQueue) {
+	public TickHandler(MessageQueue<TickMessage> tickQueue) {
 		this.tickQueue = tickQueue;
 	}
 
@@ -117,14 +120,14 @@ class TickHandler implements RunnableResource {
 		thread = new Thread(() -> {
 			try {
 				while (true) {
-					Tick tick = tickQueue.getMessage();
+					TickMessage tick = tickQueue.getMessage();
 					processTick(tick);
 				}
 			} catch (InterruptedException e) {
 			}
 			try {
 				while (true) {
-					Tick tick = tickQueue.getMessage(10);
+					TickMessage tick = tickQueue.getMessage(10);
 					if (tick != null) {
 						processTick(tick);
 					} else {
@@ -145,7 +148,7 @@ class TickHandler implements RunnableResource {
 		}
 	}
 
-	void processTick(Tick tick) {
+	void processTick(TickMessage tick) {
 		count++;
 		status.updateStatus(tick.toString());
 	}

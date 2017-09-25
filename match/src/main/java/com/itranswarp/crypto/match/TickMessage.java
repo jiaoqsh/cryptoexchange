@@ -2,7 +2,11 @@ package com.itranswarp.crypto.match;
 
 import java.math.BigDecimal;
 
-public class Tick {
+import com.itranswarp.crypto.symbol.Symbol;
+
+public class TickMessage {
+
+	public final Symbol symbol;
 
 	public final long time;
 
@@ -10,7 +14,8 @@ public class Tick {
 
 	public final BigDecimal amount;
 
-	public Tick(long time, BigDecimal price, BigDecimal amount) {
+	public TickMessage(Symbol symbol, long time, BigDecimal price, BigDecimal amount) {
+		this.symbol = symbol;
 		this.time = time;
 		this.price = price;
 		this.amount = amount;
@@ -18,6 +23,7 @@ public class Tick {
 
 	@Override
 	public String toString() {
-		return String.format("Tick(time=%d, price=%.2f, amount=%.4f)", time, price, amount);
+		return String.format("TickMessage(symbol=%s, time=%d, price=%.2f, amount=%.4f)", symbol.name(), time, price,
+				amount);
 	}
 }

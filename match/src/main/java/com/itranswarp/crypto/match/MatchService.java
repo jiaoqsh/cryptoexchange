@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -11,9 +13,10 @@ import org.springframework.stereotype.Component;
 
 import com.itranswarp.crypto.enums.OrderStatus;
 import com.itranswarp.crypto.enums.OrderType;
-import com.itranswarp.crypto.order.OrderMessage;
 import com.itranswarp.crypto.queue.MessageQueue;
+import com.itranswarp.crypto.sequence.OrderMessage;
 import com.itranswarp.crypto.store.AbstractRunnableService;
+import com.itranswarp.crypto.symbol.Symbol;
 
 /**
  * Match engine is single-threaded service to process order messages and
@@ -27,11 +30,13 @@ import com.itranswarp.crypto.store.AbstractRunnableService;
 @Component
 public class MatchService extends AbstractRunnableService {
 
+	static final BigDecimal PRICE_DELTA = new BigDecimal("0.01");
+
 	// get order from queue:
 	final MessageQueue<OrderMessage> orderMessageQueue;
 
 	// send tick to queue:
-	final MessageQueue<Tick> tickMessageQueue;
+	final MessageQueue<TickMessage> tickMessageQueue;
 
 	// send match result to queue:
 	final MessageQueue<MatchResult> matchResultMessageQueue;
@@ -46,14 +51,26 @@ public class MatchService extends AbstractRunnableService {
 	// matcher internal status:
 	HashStatus hashStatus = new HashStatus();
 
+	// depth snapshot:
+	DepthSnapshot depthSnapshot = new DepthSnapshot(0, Collections.emptyList(), Collections.emptyList());
+
 	public MatchService(@Autowired @Qualifier("orderMessageQueue") MessageQueue<OrderMessage> orderMessageQueue,
-			@Autowired @Qualifier("tickMessageQueue") MessageQueue<Tick> tickMessageQueue,
+			@Autowired @Qualifier("tickMessageQueue") MessageQueue<TickMessage> tickMessageQueue,
 			@Autowired @Qualifier("matchResultMessageQueue") MessageQueue<MatchResult> matchResultMessageQueue) {
 		this.orderMessageQueue = orderMessageQueue;
 		this.tickMessageQueue = tickMessageQueue;
 		this.matchResultMessageQueue = matchResultMessageQueue;
 		this.buyBook = new OrderBook(OrderBook.OrderBookType.BUY);
 		this.sellBook = new OrderBook(OrderBook.OrderBookType.SELL);
+	}
+
+	/**
+	 * Get depth snapshot. This method is thread-safe.
+	 * 
+	 * @return A DepthSnapshot object.
+	 */
+	public DepthSnapshot getDepthSnapshot() {
+		return this.depthSnapshot;
 	}
 
 	@Override
@@ -90,21 +107,18 @@ public class MatchService extends AbstractRunnableService {
 		case SELL_LIMIT:
 			processLimitOrder(order, order.type, this.buyBook);
 			break;
-		case BUY_MARKET:
-			throw new RuntimeException("Unsupported type.");
-		case SELL_MARKET:
-			throw new RuntimeException("Unsupported type.");
 		case BUY_CANCEL:
-			throw new RuntimeException("Unsupported type.");
 		case SELL_CANCEL:
-			throw new RuntimeException("Unsupported type.");
+		case BUY_MARKET:
+		case SELL_MARKET:
 		default:
 			throw new RuntimeException("Unsupported type.");
 		}
 	}
 
 	void processLimitOrder(OrderMessage taker, OrderType orderType, OrderBook orderBook) throws InterruptedException {
-		MatchResult matchResult = new MatchResult(taker.createdAt);
+		final long ts = taker.createdAt;
+		MatchResult matchResult = new MatchResult(ts);
 		for (;;) {
 			OrderMessage maker = orderBook.getFirst();
 			if (maker == null) {
@@ -125,7 +139,7 @@ public class MatchService extends AbstractRunnableService {
 			// is maker fully filled?
 			OrderStatus makerStatus = maker.amount.compareTo(BigDecimal.ZERO) == 0 ? OrderStatus.FULLY_FILLED
 					: OrderStatus.PARTIAL_FILLED;
-			notifyTicker(taker.createdAt, this.marketPrice, amount);
+			notifyTick(taker.symbol, taker.createdAt, this.marketPrice, amount);
 			matchResult.addMatchRecord(new MatchRecord(taker.id, maker.id, this.marketPrice, amount, makerStatus));
 			updateHashStatus(taker, maker, this.marketPrice, amount);
 			// should remove maker from order book?
@@ -145,13 +159,21 @@ public class MatchService extends AbstractRunnableService {
 			matchResult.takerStatus = taker == null ? OrderStatus.FULLY_FILLED : OrderStatus.PARTIAL_FILLED;
 			notifyMatchResult(matchResult);
 		}
+		updateDepthSnapshot(ts);
 	}
 
-	void processMarketOrder(OrderMessage taker, OrderType orderType, OrderBook orderBook) throws InterruptedException {
+	/**
+	 * Update depth snapshot. This method MUST be only invoked in MatchService's
+	 * process-thread.
+	 */
+	void updateDepthSnapshot(long timestamp) {
+		List<OrderSnapshot> buyOrders = this.buyBook.getSnapshot(10);
+		List<OrderSnapshot> sellOrders = this.sellBook.getSnapshot(10);
+		this.depthSnapshot = new DepthSnapshot(timestamp, buyOrders, sellOrders);
 	}
 
-	void notifyTicker(long time, BigDecimal price, BigDecimal amount) throws InterruptedException {
-		Tick tick = new Tick(time, price, amount);
+	void notifyTick(Symbol symbol, long time, BigDecimal price, BigDecimal amount) throws InterruptedException {
+		TickMessage tick = new TickMessage(symbol, time, price, amount);
 		this.tickMessageQueue.sendMessage(tick);
 	}
 

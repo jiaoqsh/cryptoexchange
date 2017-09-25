@@ -10,7 +10,7 @@ import org.junit.Test;
 
 import com.itranswarp.crypto.enums.OrderType;
 import com.itranswarp.crypto.order.Order;
-import com.itranswarp.crypto.order.OrderMessage;
+import com.itranswarp.crypto.sequence.OrderMessage;
 
 public class OrderBookTest {
 
@@ -89,7 +89,7 @@ public class OrderBookTest {
 		o.id = id;
 		o.price = new BigDecimal(price);
 		o.amount = new BigDecimal(amount);
-		return new OrderMessage(o);
+		return new OrderMessage(id, o);
 	}
 
 	static final Random random = new Random();
