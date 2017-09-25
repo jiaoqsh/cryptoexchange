@@ -45,7 +45,7 @@ public class AccountService extends AbstractService {
 	public void deposit(long userId, Currency currency, BigDecimal amount) {
 		assertGreaterThanZero(amount);
 		SpotAccount spotAccount = getSpotAccount(userId, currency);
-		db.update("UPDATE SpotAccount SET balance = balance + ? WHERE id = ?", amount, spotAccount.id);
+		db.update("UPDATE spot_accounts SET balance = balance + ? WHERE id = ?", amount, spotAccount.id);
 	}
 
 	/**
@@ -63,7 +63,7 @@ public class AccountService extends AbstractService {
 		SpotAccount spotAccount = getSpotAccount(userId, currency);
 		// transfer balance to frozen:
 		if (0 == db.update(
-				"UPDATE SpotAccount SET balance = balance - ?, frozen = frozen + ? WHERE id = ? AND balance >= ?",
+				"UPDATE spot_accounts SET balance = balance - ?, frozen = frozen + ? WHERE id = ? AND balance >= ?",
 				amount, amount, spotAccount.id, amount)) {
 			throw new ApiException(ApiError.ACCOUNT_FREEZE_FAILED);
 		}
@@ -84,7 +84,7 @@ public class AccountService extends AbstractService {
 		SpotAccount spotAccount = getSpotAccount(userId, currency);
 		// transfer from frozen to balance:
 		if (0 == db.update(
-				"UPDATE SpotAccount SET balance = balance + ?, frozen = frozen - ? WHERE id = ? AND frozen >= ?",
+				"UPDATE spot_accounts SET balance = balance + ?, frozen = frozen - ? WHERE id = ? AND frozen >= ?",
 				amount, amount, spotAccount.id, amount)) {
 			throw new ApiException(ApiError.ACCOUNT_UNFREEZE_FAILED);
 		}
@@ -111,11 +111,11 @@ public class AccountService extends AbstractService {
 		assertGreaterThanZero(toAmount);
 		SpotAccount fromAccount = getSpotAccount(userId, fromCurrency);
 		SpotAccount toAccount = getSpotAccount(userId, toCurrency);
-		if (0 == db.update("UPDATE SpotAccount SET frozen = frozen - ? where id = ? AND frozen >= ?", fromAmount,
+		if (0 == db.update("UPDATE spot_accounts SET frozen = frozen - ? where id = ? AND frozen >= ?", fromAmount,
 				fromAccount.id, fromAmount)) {
 			throw new ApiException(ApiError.ACCOUNT_UNFREEZE_FAILED);
 		}
-		if (0 == db.update("UPDATE SpotAccount SET balance = balance + ? where id = ?", toAmount, toAccount.id)) {
+		if (0 == db.update("UPDATE spot_accounts SET balance = balance + ? where id = ?", toAmount, toAccount.id)) {
 			throw new ApiException(ApiError.ACCOUNT_ADD_BALANCE_FAILED);
 		}
 	}

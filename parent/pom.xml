@@ -23,7 +23,7 @@
 		<bouncycastle.version>1.55</bouncycastle.version>
 		<lanterna.version>3.0.0-rc1</lanterna.version>
 		<swagger2.version>2.7.0</swagger2.version>
-		<warpdb.version>2.6</warpdb.version>
+		<warpdb.version>2.8</warpdb.version>
 	</properties>
 
 	<dependencies>
