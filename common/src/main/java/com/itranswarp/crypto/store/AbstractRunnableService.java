@@ -15,6 +15,14 @@ public abstract class AbstractRunnableService extends AbstractService implements
 	private Thread processThread = null;
 
 	/**
+	 * Do init job.
+	 * 
+	 * @throws InterruptedException
+	 */
+	protected void init() throws InterruptedException {
+	}
+
+	/**
 	 * Process in a background thread.
 	 * 
 	 * @throws InterruptedException
@@ -31,11 +39,17 @@ public abstract class AbstractRunnableService extends AbstractService implements
 	/**
 	 * Start new background thread to process job.
 	 */
-	@PostConstruct
 	@Override
+	@PostConstruct
 	public final synchronized void start() {
 		if (processThread != null) {
 			throw new IllegalStateException("Cannot re-invoke start()");
+		}
+		try {
+			init();
+		} catch (InterruptedException e) {
+			logger.error(e.getMessage(), e);
+			throw new RuntimeException(e);
 		}
 		logger.info("starting background thread in " + getClass().getName() + "...");
 		processThread = new Thread() {
@@ -59,8 +73,8 @@ public abstract class AbstractRunnableService extends AbstractService implements
 	/**
 	 * Shutdown background thread.
 	 */
-	@PreDestroy
 	@Override
+	@PreDestroy
 	public final synchronized void shutdown() {
 		if (processThread != null) {
 			logger.info("shutting down background thread in " + getClass().getName() + "...");

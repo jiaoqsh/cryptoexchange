@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 
-import com.itranswarp.crypto.match.Tick;
+import com.itranswarp.crypto.match.TickMessage;
 import com.itranswarp.crypto.queue.MessageQueue;
 import com.itranswarp.crypto.symbol.Symbol;
 
@@ -16,9 +16,9 @@ import com.itranswarp.crypto.symbol.Symbol;
 public class QuotationService {
 
 	final ZoneId zoneId = ZoneId.systemDefault();
-	final MessageQueue<Tick> quotationMessageQueue;
+	final MessageQueue<TickMessage> quotationMessageQueue;
 
-	public QuotationService(MessageQueue<Tick> quotationQueue) {
+	public QuotationService(MessageQueue<TickMessage> quotationQueue) {
 		this.quotationMessageQueue = quotationQueue;
 	}
 

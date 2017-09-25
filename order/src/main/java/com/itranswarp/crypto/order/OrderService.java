@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
-import com.itranswarp.crypto.enums.OrderType;
+import com.itranswarp.crypto.account.AccountService;
 import com.itranswarp.crypto.queue.MessageQueue;
 import com.itranswarp.crypto.store.AbstractService;
 import com.itranswarp.crypto.symbol.Symbol;
@@ -15,33 +15,26 @@ import com.itranswarp.crypto.symbol.Symbol;
 public class OrderService extends AbstractService {
 
 	@Autowired
-	OrderHandlerService orderHandlerService;
+	AccountService accountService;
 
 	@Autowired
-	@Qualifier("orderMessageQueue")
-	MessageQueue<OrderMessage> orderMessageQueue;
+	OrderHandler orderHandler;
 
-	public Order createBuyLimitOrder(Symbol symbol, BigDecimal price, BigDecimal amount) throws InterruptedException {
-		Order order = new Order();
-		order.baseCurrency = symbol.base;
-		order.quoteCurrency = symbol.quote;
-		order.amount = symbol.base.adjust(amount);
-		order.price = symbol.quote.adjust(price);
-		order.type = OrderType.BUY_LIMIT;
-		orderHandlerService.saveOrder(order);
-		orderMessageQueue.sendMessage(new OrderMessage(order));
+	@Autowired
+	@Qualifier("orderSequenceQueue")
+	MessageQueue<Order> orderSequenceQueue;
+
+	public Order createBuyLimitOrder(long userId, Symbol symbol, BigDecimal price, BigDecimal amount)
+			throws InterruptedException {
+		Order order = orderHandler.createBuyLimitOrder(userId, symbol, price, amount);
+		orderSequenceQueue.sendMessage(order);
 		return order;
 	}
 
-	public Order createSellLimitOrder(Symbol symbol, BigDecimal price, BigDecimal amount) throws InterruptedException {
-		Order order = new Order();
-		order.baseCurrency = symbol.base;
-		order.quoteCurrency = symbol.quote;
-		order.amount = symbol.base.adjust(amount);
-		order.price = symbol.quote.adjust(price);
-		order.type = OrderType.SELL_LIMIT;
-		orderHandlerService.saveOrder(order);
-		orderMessageQueue.sendMessage(new OrderMessage(order));
+	public Order createSellLimitOrder(long userId, Symbol symbol, BigDecimal price, BigDecimal amount)
+			throws InterruptedException {
+		Order order = orderHandler.createSellLimitOrder(userId, symbol, price, amount);
+		orderSequenceQueue.sendMessage(order);
 		return order;
 	}
 }

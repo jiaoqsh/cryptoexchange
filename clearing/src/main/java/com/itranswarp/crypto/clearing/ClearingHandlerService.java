@@ -57,14 +57,14 @@ public class ClearingHandlerService extends AbstractService {
 			long timestamp) {
 		switch (takerOrder.type) {
 		case BUY_LIMIT:
-			// BTC++ and CNY--
-			accountService.frozenToSpot(takerOrder.userId, takerOrder.quoteCurrency, totalSpent,
-					takerOrder.baseCurrency, totalAmount);
+			// BTC++ and USD--
+			accountService.frozenToSpot(takerOrder.userId, takerOrder.symbol.quote, totalSpent, takerOrder.symbol.base,
+					totalAmount);
 			break;
 		case SELL_LIMIT:
-			// BTC-- and CNY++
-			accountService.frozenToSpot(takerOrder.userId, takerOrder.baseCurrency, totalAmount,
-					takerOrder.quoteCurrency, totalSpent);
+			// BTC-- and USD++
+			accountService.frozenToSpot(takerOrder.userId, takerOrder.symbol.base, totalAmount, takerOrder.symbol.quote,
+					totalSpent);
 			break;
 		case BUY_MARKET:
 		case SELL_MARKET:
@@ -79,9 +79,9 @@ public class ClearingHandlerService extends AbstractService {
 			long timestamp, List<OrderMatchRecord> recordCollector) {
 		switch (makerOrder.type) {
 		case BUY_LIMIT:
-			// BTC++ and CNY--
-			accountService.frozenToSpot(makerOrder.userId, makerOrder.quoteCurrency, price.multiply(amount),
-					makerOrder.baseCurrency, amount);
+			// BTC++ and USD--
+			accountService.frozenToSpot(makerOrder.userId, makerOrder.symbol.quote, price.multiply(amount),
+					makerOrder.symbol.base, amount);
 			makerOrder.status = status;
 			makerOrder.filledAmount = makerOrder.filledAmount.add(amount);
 			db.updateProperties(makerOrder, "status", "filledAmount", "updatedAt", "version");
@@ -89,8 +89,8 @@ public class ClearingHandlerService extends AbstractService {
 			recordCollector.add(createOrderMatchRecord(takerOrder.id, MatchType.TAKER, price, amount, timestamp));
 			break;
 		case SELL_LIMIT:
-			// BTC-- and CNY++
-			accountService.frozenToSpot(makerOrder.userId, makerOrder.baseCurrency, amount, makerOrder.quoteCurrency,
+			// BTC-- and USD++
+			accountService.frozenToSpot(makerOrder.userId, makerOrder.symbol.base, amount, makerOrder.symbol.quote,
 					price.multiply(amount));
 			makerOrder.status = status;
 			makerOrder.filledAmount = makerOrder.filledAmount.add(amount);

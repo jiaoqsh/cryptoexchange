@@ -5,13 +5,14 @@ import javax.persistence.Entity;
 import javax.persistence.Table;
 
 import com.itranswarp.crypto.store.AbstractEntity;
+import com.itranswarp.crypto.symbol.Symbol;
 
 @Entity
-@Table(name = "tick")
-public class TickEntity extends AbstractEntity {
+@Table(name = "ticks")
+public class Tick extends AbstractEntity {
 
 	@Column(length = 20, nullable = false)
-	public String symbol;
+	public Symbol symbol;
 
 	@Column(unique = true, nullable = false)
 	public long time;
@@ -22,4 +23,8 @@ public class TickEntity extends AbstractEntity {
 	@Column(nullable = false)
 	public long amount;
 
+	@Override
+	public String toString() {
+		return String.format("Tick(symbol=%s, time=%d, price=%.2f, amount=%.4f)", symbol.name(), time, price, amount);
+	}
 }

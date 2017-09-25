@@ -15,7 +15,7 @@ import com.itranswarp.crypto.store.AbstractEntity;
  * @author liaoxuefeng
  */
 @Entity
-@Table(indexes = @Index(name = "IDX_ORDERID", columnList = "orderId"))
+@Table(name = "order_match_records", indexes = @Index(name = "IDX_ORDERID", columnList = "orderId"))
 public class OrderMatchRecord extends AbstractEntity {
 
 	/**

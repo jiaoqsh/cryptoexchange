@@ -10,7 +10,7 @@ import javax.persistence.Table;
 import com.itranswarp.crypto.enums.OrderStatus;
 import com.itranswarp.crypto.enums.OrderType;
 import com.itranswarp.crypto.store.AbstractEntity;
-import com.itranswarp.crypto.symbol.Currency;
+import com.itranswarp.crypto.symbol.Symbol;
 
 /**
  * Order entity.
@@ -18,7 +18,7 @@ import com.itranswarp.crypto.symbol.Currency;
  * @author liaoxuefeng
  */
 @Entity
-@Table(indexes = { @Index(name = "IDX_USERID_STATUS", columnList = "userId, status"),
+@Table(name = "orders", indexes = { @Index(name = "IDX_USERID_STATUS", columnList = "userId, status"),
 		@Index(name = "IDX_CREATEDAT", columnList = "createdAt") })
 public class Order extends AbstractEntity {
 
@@ -26,10 +26,7 @@ public class Order extends AbstractEntity {
 	public long userId;
 
 	@Column(nullable = false, updatable = false)
-	public Currency baseCurrency;
-
-	@Column(nullable = false, updatable = false)
-	public Currency quoteCurrency;
+	public Symbol symbol;
 
 	@Column(nullable = false, updatable = false)
 	public OrderType type;

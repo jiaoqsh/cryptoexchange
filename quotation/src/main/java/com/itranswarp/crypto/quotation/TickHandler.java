@@ -1,33 +1,33 @@
 package com.itranswarp.crypto.quotation;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.itranswarp.crypto.RunnableResource;
-import com.itranswarp.crypto.match.Tick;
+import com.itranswarp.crypto.match.TickMessage;
 import com.itranswarp.crypto.queue.MessageQueue;
 
-public class TickerHandler implements RunnableResource {
+public class TickHandler implements RunnableResource {
 
 	static final int BATCH_SIZE = 10;
 
 	final Logger logger = LoggerFactory.getLogger(getClass());
 
-	final MessageQueue<Tick> tickQueue;
+	final MessageQueue<TickMessage> tickQueue;
 	Thread processThread = null;
 
-	public TickerHandler(MessageQueue<Tick> tickerQueue) {
+	public TickHandler(MessageQueue<TickMessage> tickerQueue) {
 		this.tickQueue = tickerQueue;
 	}
 
-	public final AtomicLong amount = new AtomicLong(0);
+	public BigDecimal amount = new BigDecimal(0);
 	public final List<String> list = new ArrayList<>();
 
 	@Override
@@ -39,12 +39,12 @@ public class TickerHandler implements RunnableResource {
 			public void run() {
 				try {
 					while (true) {
-						Tick tick = tickQueue.getMessage();
+						TickMessage tick = tickQueue.getMessage();
 						logger.info("Receive tick: " + tick);
 						store(tick, tick.time / 1000 == 0);
 						ZonedDateTime dt = ZonedDateTime.ofInstant(Instant.ofEpochMilli(tick.time), DEFAULT_TIMEZONE);
 						list.add(dt.toLocalTime() + " $ " + tick.price + ", " + amount);
-						amount.addAndGet(tick.amount);
+						amount = amount.add(tick.amount);
 					}
 				} catch (InterruptedException e) {
 					logger.warn("TickerHandler was interrupted.");
@@ -71,9 +71,9 @@ public class TickerHandler implements RunnableResource {
 		processThread = null;
 	}
 
-	private List<Tick> cachedTickers = new ArrayList<>(BATCH_SIZE);
+	private List<TickMessage> cachedTickers = new ArrayList<>(BATCH_SIZE);
 
-	private void store(Tick ticker, boolean forceFlush) {
+	private void store(TickMessage ticker, boolean forceFlush) {
 		if (ticker != null) {
 			cachedTickers.add(ticker);
 		}
@@ -92,7 +92,7 @@ public class TickerHandler implements RunnableResource {
 
 	@Override
 	public String toString() {
-		return String.join("\n", list) + "\nAmount: " + this.amount.get();
+		return String.join("\n", list) + "\nAmount: " + this.amount;
 	}
 
 	public List<KLine> toSeconds() {

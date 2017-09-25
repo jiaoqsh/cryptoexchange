@@ -24,7 +24,7 @@ public class ApiException extends RuntimeException {
 
 	public ApiException(ApiError error, String data, String message) {
 		super(message);
-		this.error = error.toString();
+		this.error = error.name();
 		this.data = data;
 	}
 

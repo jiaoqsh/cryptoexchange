@@ -10,6 +10,8 @@ import javax.persistence.MappedSuperclass;
 import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 /**
  * Base entity class.
  * 
@@ -30,18 +32,21 @@ public class AbstractEntity implements Serializable {
 	 * Created time (milliseconds).
 	 */
 	@Column(nullable = false, updatable = false)
+	@JsonIgnore
 	public long createdAt;
 
 	/**
 	 * Updated time (milliseconds).
 	 */
 	@Column(nullable = false)
+	@JsonIgnore
 	public long updatedAt;
 
 	/**
 	 * Entity version: increment when update.
 	 */
 	@Column(nullable = false)
+	@JsonIgnore
 	public long version;
 
 	// hook for pre-insert:
