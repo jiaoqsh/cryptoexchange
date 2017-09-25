@@ -1,6 +1,7 @@
 package com.itranswarp.crypto.user;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Component;
@@ -25,7 +26,7 @@ public class UserService extends AbstractService {
 			throw new ApiException(ApiError.AUTH_CANNOT_SIGNIN);
 		}
 		// check password hash:
-		String hash = sha1Password(user.id, passwd);
+		String hash = sha1Password(user.id, pa.random, passwd);
 		if (!hash.equals(pa.passwd)) {
 			throw new ApiException(ApiError.AUTH_SIGNIN_FAILED);
 		}
@@ -36,6 +37,9 @@ public class UserService extends AbstractService {
 		checkEmail(email);
 		checkPassword(passwd);
 		checkName(name);
+		if (db.from(User.class).where("email = ?", email).first() != null) {
+			throw new ApiException(ApiError.USER_EMAIL_EXIST);
+		}
 		User user = new User();
 		user.email = email;
 		user.type = User.UserType.NORMAL;
@@ -43,9 +47,21 @@ public class UserService extends AbstractService {
 		db.save(user);
 		PasswordAuth pa = new PasswordAuth();
 		pa.userId = user.id;
-		pa.passwd = sha1Password(user.id, passwd);
+		pa.random = (long) (Math.random() * Long.MAX_VALUE);
+		pa.passwd = sha1Password(user.id, pa.random, passwd);
 		db.save(pa);
 		return user;
+	}
+
+	/**
+	 * Find user that id > startId.
+	 * 
+	 * @param startId
+	 * @param maxResults
+	 * @return
+	 */
+	public List<User> findUsers(long startId, int maxResults) {
+		return db.from(User.class).where("id>?", startId).orderBy("id").limit(maxResults).list();
 	}
 
 	public User getByEmail(String email) {
@@ -67,17 +83,17 @@ public class UserService extends AbstractService {
 			throw new ApiException(ApiError.AUTH_CANNOT_CHANGE_PWD);
 		}
 		// check password hash:
-		String hash = sha1Password(user.id, oldPasswd);
+		String hash = sha1Password(user.id, pa.random, oldPasswd);
 		if (!hash.equals(pa.passwd)) {
 			throw new ApiException(ApiError.AUTH_BAD_OLD_PWD);
 		}
 		// change to new password:
-		pa.passwd = sha1Password(user.id, newPasswd);
+		pa.passwd = sha1Password(user.id, pa.random, newPasswd);
 		db.update(pa);
 	}
 
-	String sha1Password(long userId, String originPasswd) {
-		String payload = userId + ":" + originPasswd;
+	String sha1Password(long userId, long random, String originPasswd) {
+		String payload = userId + ":" + random + ":" + originPasswd;
 		return HashUtil.sha1(payload.getBytes(StandardCharsets.UTF_8));
 	}
 

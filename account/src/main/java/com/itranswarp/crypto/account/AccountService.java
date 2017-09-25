@@ -1,6 +1,7 @@
 package com.itranswarp.crypto.account;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,27 @@ public class AccountService extends AbstractService {
 		}
 	}
 
+	/**
+	 * Get all spot account.
+	 * 
+	 * @param userId
+	 *            The user id.
+	 * @return List of spot accounts.
+	 */
+	public List<SpotAccount> getSpotAccounts(long userId) {
+		return db.from(SpotAccount.class).where("userId=?", userId).list();
+	}
+
+	/**
+	 * Deposit specified currency to spot account.
+	 * 
+	 * @param userId
+	 *            The user id.
+	 * @param currency
+	 *            The currency.
+	 * @param amount
+	 *            The amount.
+	 */
 	public void deposit(long userId, Currency currency, BigDecimal amount) {
 		assertGreaterThanZero(amount);
 		SpotAccount spotAccount = getSpotAccount(userId, currency);
@@ -39,13 +61,12 @@ public class AccountService extends AbstractService {
 	public void freeze(long userId, Currency currency, BigDecimal amount) {
 		assertGreaterThanZero(amount);
 		SpotAccount spotAccount = getSpotAccount(userId, currency);
-		FrozenAccount frozenAccount = getFrozenAccount(userId, currency);
-		// transfer from spot account to frozen account:
-		if (0 == db.update("UPDATE SpotAccount SET balance = balance - ? WHERE id = ? AND balance >= ?", amount,
-				spotAccount.id, amount)) {
+		// transfer balance to frozen:
+		if (0 == db.update(
+				"UPDATE SpotAccount SET balance = balance - ?, frozen = frozen + ? WHERE id = ? AND balance >= ?",
+				amount, amount, spotAccount.id, amount)) {
 			throw new ApiException(ApiError.ACCOUNT_FREEZE_FAILED);
 		}
-		db.update("UPDATE FrozenAccount SET balance = balance + ? WHERE id = ?", amount, frozenAccount.id);
 	}
 
 	/**
@@ -61,13 +82,12 @@ public class AccountService extends AbstractService {
 	public void unfreeze(long userId, Currency currency, BigDecimal amount) {
 		assertGreaterThanZero(amount);
 		SpotAccount spotAccount = getSpotAccount(userId, currency);
-		FrozenAccount frozenAccount = getFrozenAccount(userId, currency);
-		// transfer from spot account to frozen account:
-		if (0 == db.update("UPDATE FrozenAccount SET balance = balance - ? WHERE id = ? AND balance >= ?", amount,
-				frozenAccount.id, amount)) {
+		// transfer from frozen to balance:
+		if (0 == db.update(
+				"UPDATE SpotAccount SET balance = balance + ?, frozen = frozen - ? WHERE id = ? AND frozen >= ?",
+				amount, amount, spotAccount.id, amount)) {
 			throw new ApiException(ApiError.ACCOUNT_UNFREEZE_FAILED);
 		}
-		db.update("UPDATE SpotAccount SET balance = balance + ? WHERE id = ?", amount, spotAccount.id);
 	}
 
 	/**
@@ -89,9 +109,9 @@ public class AccountService extends AbstractService {
 			BigDecimal toAmount) {
 		assertGreaterThanZero(fromAmount);
 		assertGreaterThanZero(toAmount);
-		FrozenAccount fromAccount = getFrozenAccount(userId, fromCurrency);
+		SpotAccount fromAccount = getSpotAccount(userId, fromCurrency);
 		SpotAccount toAccount = getSpotAccount(userId, toCurrency);
-		if (0 == db.update("UPDATE FrozenAccount SET balance = balance - ? where id = ? AND balance >= ?", fromAmount,
+		if (0 == db.update("UPDATE SpotAccount SET frozen = frozen - ? where id = ? AND frozen >= ?", fromAmount,
 				fromAccount.id, fromAmount)) {
 			throw new ApiException(ApiError.ACCOUNT_UNFREEZE_FAILED);
 		}
@@ -108,21 +128,9 @@ public class AccountService extends AbstractService {
 			spotAccount.userId = userId;
 			spotAccount.currency = currency;
 			spotAccount.balance = BigDecimal.ZERO;
+			spotAccount.frozen = BigDecimal.ZERO;
 			db.save(spotAccount);
 		}
 		return spotAccount;
-	}
-
-	public FrozenAccount getFrozenAccount(long userId, Currency currency) {
-		FrozenAccount frozenAccount = db.from(FrozenAccount.class)
-				.where("userId = ? AND currency = ?", userId, currency).first();
-		if (frozenAccount == null) {
-			frozenAccount = new FrozenAccount();
-			frozenAccount.userId = userId;
-			frozenAccount.currency = currency;
-			frozenAccount.balance = BigDecimal.ZERO;
-			db.save(frozenAccount);
-		}
-		return frozenAccount;
 	}
 }

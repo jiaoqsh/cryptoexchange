@@ -11,7 +11,8 @@ import com.itranswarp.crypto.store.AbstractEntity;
 import com.itranswarp.crypto.symbol.Currency;
 
 @Entity
-@Table(uniqueConstraints = @UniqueConstraint(name = "UNI_USERID_CURRENCY", columnNames = { "userId", "currency" }))
+@Table(name = "spot_accounts", uniqueConstraints = @UniqueConstraint(name = "UNI_USERID_CURRENCY", columnNames = {
+		"userId", "currency" }))
 public class SpotAccount extends AbstractEntity {
 
 	@Column(nullable = false)
@@ -23,8 +24,12 @@ public class SpotAccount extends AbstractEntity {
 	@Column(nullable = false, precision = 32, scale = 16)
 	public BigDecimal balance;
 
+	@Column(nullable = false, precision = 32, scale = 16)
+	public BigDecimal frozen;
+
 	@Override
 	public String toString() {
-		return String.format("SpotAccount(userId=%s, %s=%s)", userId, currency.name(), currency.display(balance));
+		return String.format("SpotAccount(userId=%s, %s=%s, %s)", userId, currency.name(), currency.display(balance),
+				currency.display(frozen));
 	}
 }

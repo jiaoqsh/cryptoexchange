@@ -8,7 +8,7 @@ import javax.persistence.UniqueConstraint;
 import com.itranswarp.crypto.store.AbstractEntity;
 
 @Entity
-@Table(uniqueConstraints = @UniqueConstraint(name = "UNI_EMAIL", columnNames = { "email" }))
+@Table(name = "users", uniqueConstraints = @UniqueConstraint(name = "UNI_EMAIL", columnNames = { "email" }))
 public class User extends AbstractEntity {
 
 	public static enum UserType {
