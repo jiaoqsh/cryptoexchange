@@ -1,36 +1,39 @@
 package com.itranswarp.crypto.api;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.itranswarp.crypto.account.AccountService;
+import com.itranswarp.crypto.account.SpotAccount;
+import com.itranswarp.crypto.api.bean.UserBean;
+import com.itranswarp.crypto.enums.OrderType;
 import com.itranswarp.crypto.order.Order;
-import com.itranswarp.crypto.order.OrderService;
-import com.itranswarp.crypto.order.OrderType;
 import com.itranswarp.crypto.symbol.Symbol;
-import com.itranswarp.crypto.user.UserService;
+import com.itranswarp.crypto.user.User;
+import com.itranswarp.crypto.user.UserContext;
 
 @RestController
-@RequestMapping("/api")
-public class RestApiController {
+@RequestMapping("/rest/api/user")
+public class RestUserApiController extends AbstractApiController {
 
-	@Autowired
-	UserService userService;
-
-	@Autowired
-	AccountService accountService;
-
-	@Autowired
-	OrderService orderService;
-
-	@GetMapping("/timestamp")
-	public SimpleResponse<Long> timestamp() {
-		return SimpleResponse.of(System.currentTimeMillis());
+	@PostMapping("/register")
+	public User createUser(@RequestBody UserBean user) {
+		return userService.createUser(user.email, user.passwd, user.name);
 	}
 
-	public Order createOrder(Symbol symbol, OrderType orderType, long price, long amount) {
+	@GetMapping("/accounts")
+	public Map<String, List<SpotAccount>> getAccounts() {
+		List<SpotAccount> list = accountService.getSpotAccounts(UserContext.getRequiredCurrentUser().id);
+		return SimpleResponse.of("spotAccounts", list);
+	}
+
+	public Order createOrder(Symbol symbol, OrderType orderType, BigDecimal price, BigDecimal amount) {
 		return null;
 	}
 

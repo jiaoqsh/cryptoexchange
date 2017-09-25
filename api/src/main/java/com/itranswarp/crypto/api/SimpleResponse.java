@@ -1,15 +1,16 @@
 package com.itranswarp.crypto.api;
 
-public class SimpleResponse<T> {
+import java.util.Collections;
+import java.util.Map;
 
-	public final T data;
+public class SimpleResponse {
 
-	public static <K> SimpleResponse<K> of(K data) {
-		return new SimpleResponse<>(data);
+	public static <T> Map<String, T> of(T value) {
+		return Collections.singletonMap("data", value);
 	}
 
-	private SimpleResponse(T data) {
-		this.data = data;
+	public static <T> Map<String, T> of(String key, T value) {
+		return Collections.singletonMap(key, value);
 	}
 
 }

@@ -1,6 +1,7 @@
 package com.itranswarp.crypto.api;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -20,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.itranswarp.crypto.ApiError;
 import com.itranswarp.crypto.ApiException;
 import com.itranswarp.crypto.user.User;
@@ -30,6 +32,9 @@ import com.itranswarp.crypto.user.UserService;
 public class RestFilter implements Filter {
 
 	final Logger logger = LoggerFactory.getLogger(getClass());
+
+	@Autowired
+	ObjectMapper objectMapper;
 
 	@Autowired
 	UserService userService;
@@ -45,8 +50,10 @@ public class RestFilter implements Filter {
 		try (UserContext ctx = new UserContext(user)) {
 			chain.doFilter(req, resp);
 		} catch (ApiException e) {
+			logger.warn(e.getMessage(), e);
 			sendErrorResponse(resp, e);
 		} catch (Exception e) {
+			logger.warn(e.getMessage(), e);
 			sendErrorResponse(resp, new ApiException(ApiError.INTERNAL_SERVER_ERROR, null, e.getMessage()));
 		}
 	}
@@ -55,6 +62,15 @@ public class RestFilter implements Filter {
 		if (!resp.isCommitted()) {
 			resp.setContentType("application/json");
 			resp.sendError(400, "json");
+			PrintWriter pw = resp.getWriter();
+			pw.print("{\"error\":");
+			pw.print(objectMapper.writeValueAsString(e.error));
+			pw.print("{\"error\":");
+			pw.print(objectMapper.writeValueAsString(e.data));
+			pw.print("{\"message\":");
+			pw.print(objectMapper.writeValueAsString(e.getMessage()));
+			pw.print("}");
+			pw.flush();
 		}
 	}
 
