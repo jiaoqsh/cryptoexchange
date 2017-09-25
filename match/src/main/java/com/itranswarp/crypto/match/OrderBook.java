@@ -35,8 +35,8 @@ public class OrderBook {
 			if (n > 0) {
 				return 1;
 			}
-			long i1 = o1.id;
-			long i2 = o2.id;
+			long i1 = o1.seqId;
+			long i2 = o2.seqId;
 			if (i1 < i2) {
 				return -1;
 			}
@@ -62,8 +62,8 @@ public class OrderBook {
 			if (n > 0) {
 				return -1;
 			}
-			long i1 = o1.id;
-			long i2 = o2.id;
+			long i1 = o1.seqId;
+			long i2 = o2.seqId;
 			if (i1 < i2) {
 				return -1;
 			}

@@ -102,10 +102,10 @@ public class MatchService extends AbstractRunnableService {
 	void processOrder(OrderMessage order) throws InterruptedException {
 		switch (order.type) {
 		case BUY_LIMIT:
-			processLimitOrder(order, order.type, this.sellBook);
+			processLimitOrder(order, order.type, this.sellBook, this.buyBook);
 			break;
 		case SELL_LIMIT:
-			processLimitOrder(order, order.type, this.buyBook);
+			processLimitOrder(order, order.type, this.buyBook, this.sellBook);
 			break;
 		case BUY_CANCEL:
 		case SELL_CANCEL:
@@ -116,11 +116,12 @@ public class MatchService extends AbstractRunnableService {
 		}
 	}
 
-	void processLimitOrder(OrderMessage taker, OrderType orderType, OrderBook orderBook) throws InterruptedException {
+	void processLimitOrder(OrderMessage taker, OrderType orderType, OrderBook makerBook, OrderBook takerBook)
+			throws InterruptedException {
 		final long ts = taker.createdAt;
 		MatchResult matchResult = new MatchResult(ts);
 		for (;;) {
-			OrderMessage maker = orderBook.getFirst();
+			OrderMessage maker = makerBook.getFirst();
 			if (maker == null) {
 				// empty order book:
 				break;
@@ -130,7 +131,7 @@ public class MatchService extends AbstractRunnableService {
 			} else if (orderType == OrderType.SELL_LIMIT && taker.price.compareTo(maker.price) > 0) {
 				break;
 			}
-			// match with sellMaker.price:
+			// match with maker.price:
 			this.marketPrice = maker.price;
 			// max amount to exchange:
 			BigDecimal amount = taker.amount.min(maker.amount);
@@ -144,7 +145,7 @@ public class MatchService extends AbstractRunnableService {
 			updateHashStatus(taker, maker, this.marketPrice, amount);
 			// should remove maker from order book?
 			if (makerStatus == OrderStatus.FULLY_FILLED) {
-				orderBook.remove(maker);
+				makerBook.remove(maker);
 			}
 			// should remove taker from order book?
 			if (taker.amount.compareTo(BigDecimal.ZERO) == 0) {
@@ -153,7 +154,7 @@ public class MatchService extends AbstractRunnableService {
 			}
 		}
 		if (taker != null) {
-			orderBook.add(taker);
+			takerBook.add(taker);
 		}
 		if (!matchResult.isEmpty()) {
 			matchResult.takerStatus = taker == null ? OrderStatus.FULLY_FILLED : OrderStatus.PARTIAL_FILLED;

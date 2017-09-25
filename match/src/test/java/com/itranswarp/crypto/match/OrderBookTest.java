@@ -15,11 +15,6 @@ import com.itranswarp.crypto.sequence.OrderMessage;
 public class OrderBookTest {
 
 	@Test
-	public void testGetSnapshot() {
-		fail("Not yet implemented");
-	}
-
-	@Test
 	public void testGetSellBookFirst() {
 		OrderBook sell = new OrderBook(OrderBook.OrderBookType.SELL);
 		assertNull(sell.getFirst());
