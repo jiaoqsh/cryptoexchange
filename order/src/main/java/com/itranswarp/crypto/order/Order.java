@@ -31,15 +31,21 @@ public class Order extends AbstractEntity {
 	@Column(nullable = false, updatable = false)
 	public OrderType type;
 
-	@Column(nullable = false, updatable = false)
+	@Column(nullable = false, updatable = false, precision = PRECISION, scale = SCALE)
 	public BigDecimal price;
 
-	@Column(nullable = false, updatable = false)
+	@Column(nullable = false, updatable = false, precision = PRECISION, scale = SCALE)
 	public BigDecimal amount;
 
-	@Column(nullable = false)
+	@Column(nullable = false, precision = PRECISION, scale = SCALE)
 	public BigDecimal filledAmount;
 
 	@Column(nullable = false)
 	public OrderStatus status;
+
+	@Override
+	public String toString() {
+		return String.format("Order: %s, userId=%s, type=%s, price=%.2f, amount=%.4f, filledAmount=%.4f, status=%s",
+				this.symbol, this.userId, this.type, this.price, this.amount, this.filledAmount, this.status);
+	}
 }

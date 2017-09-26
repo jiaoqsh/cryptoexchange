@@ -21,10 +21,10 @@ public class SpotAccount extends AbstractEntity {
 	@Column(nullable = false, length = 20)
 	public Currency currency;
 
-	@Column(nullable = false, precision = 32, scale = 16)
+	@Column(nullable = false, precision = PRECISION, scale = SCALE)
 	public BigDecimal balance;
 
-	@Column(nullable = false, precision = 32, scale = 16)
+	@Column(nullable = false, precision = PRECISION, scale = SCALE)
 	public BigDecimal frozen;
 
 	@Override

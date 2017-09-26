@@ -1,5 +1,7 @@
 package com.itranswarp.crypto.quotation;
 
+import java.math.BigDecimal;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Table;
@@ -11,17 +13,17 @@ import com.itranswarp.crypto.symbol.Symbol;
 @Table(name = "ticks")
 public class Tick extends AbstractEntity {
 
-	@Column(length = 20, nullable = false)
+	@Column(length = 20, nullable = false, updatable = false)
 	public Symbol symbol;
 
-	@Column(unique = true, nullable = false)
+	@Column(unique = true, nullable = false, updatable = false)
 	public long time;
 
-	@Column(nullable = false)
+	@Column(nullable = false, updatable = false, precision = PRECISION, scale = SCALE)
 	public long price;
 
-	@Column(nullable = false)
-	public long amount;
+	@Column(nullable = false, updatable = false, precision = PRECISION, scale = SCALE)
+	public BigDecimal amount;
 
 	@Override
 	public String toString() {
