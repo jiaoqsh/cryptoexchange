@@ -11,8 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.itranswarp.crypto.account.AccountService;
 import com.itranswarp.crypto.enums.MatchType;
 import com.itranswarp.crypto.enums.OrderStatus;
-import com.itranswarp.crypto.match.MatchRecord;
-import com.itranswarp.crypto.match.MatchResult;
+import com.itranswarp.crypto.match.MatchRecordMessage;
+import com.itranswarp.crypto.match.MatchResultMessage;
 import com.itranswarp.crypto.order.Order;
 import com.itranswarp.crypto.store.AbstractService;
 
@@ -30,14 +30,14 @@ public class ClearingHandlerService extends AbstractService {
 	 * @param matchResult
 	 *            MatchResult object.
 	 */
-	public void processMatchResult(MatchResult matchResult) {
+	public void processMatchResult(MatchResultMessage matchResult) {
 		final long timestamp = matchResult.timestamp;
 		// a match result contains one taker and one or more makers:
 		Order takerOrder = null;
 		List<OrderMatchRecord> recordCollector = new ArrayList<>();
 		BigDecimal totalSpent = BigDecimal.ZERO;
 		BigDecimal totalAmount = BigDecimal.ZERO;
-		for (MatchRecord record : matchResult.getMatchRecords()) {
+		for (MatchRecordMessage record : matchResult.getMatchRecords()) {
 			BigDecimal price = record.matchPrice;
 			BigDecimal amount = record.matchAmount;
 			if (takerOrder == null) {

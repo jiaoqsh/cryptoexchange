@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 
 import com.itranswarp.crypto.enums.OrderStatus;
 
-public class MatchRecord {
+public class MatchRecordMessage {
 
 	public final long takerOrderId;
 	public final long makerOrderId;
@@ -12,7 +12,7 @@ public class MatchRecord {
 	public final BigDecimal matchAmount;
 	public final OrderStatus makerStatus;
 
-	public MatchRecord(long takerOrderId, long makerOrderId, BigDecimal matchPrice, BigDecimal matchAmount,
+	public MatchRecordMessage(long takerOrderId, long makerOrderId, BigDecimal matchPrice, BigDecimal matchAmount,
 			OrderStatus makerStatus) {
 		this.takerOrderId = takerOrderId;
 		this.makerOrderId = makerOrderId;
@@ -21,4 +21,9 @@ public class MatchRecord {
 		this.makerStatus = makerStatus;
 	}
 
+	@Override
+	public String toString() {
+		return String.format("Taker: %d, maker: %d, price=%7.2f, amount=%7.2f, maker=%s", this.takerOrderId,
+				this.makerOrderId, this.matchPrice, this.matchAmount, this.makerStatus);
+	}
 }

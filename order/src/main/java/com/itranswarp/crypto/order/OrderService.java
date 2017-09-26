@@ -27,6 +27,7 @@ public class OrderService extends AbstractService {
 	public Order createBuyLimitOrder(long userId, Symbol symbol, BigDecimal price, BigDecimal amount)
 			throws InterruptedException {
 		Order order = orderHandler.createBuyLimitOrder(userId, symbol, price, amount);
+		logger.info("order created: " + order);
 		orderSequenceQueue.sendMessage(order);
 		return order;
 	}
@@ -34,6 +35,7 @@ public class OrderService extends AbstractService {
 	public Order createSellLimitOrder(long userId, Symbol symbol, BigDecimal price, BigDecimal amount)
 			throws InterruptedException {
 		Order order = orderHandler.createSellLimitOrder(userId, symbol, price, amount);
+		logger.info("order created: " + order);
 		orderSequenceQueue.sendMessage(order);
 		return order;
 	}

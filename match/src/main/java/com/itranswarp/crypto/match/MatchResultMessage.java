@@ -11,22 +11,22 @@ import com.itranswarp.crypto.enums.OrderStatus;
  * 
  * @author liaoxuefeng
  */
-public class MatchResult {
+public class MatchResultMessage {
 
 	public OrderStatus takerStatus;
 	public final long timestamp;
 
-	private List<MatchRecord> matchRecords = null;
+	private List<MatchRecordMessage> matchRecords = null;
 
-	public MatchResult(long timestamp) {
+	public MatchResultMessage(long timestamp) {
 		this.timestamp = timestamp;
 	}
 
-	public List<MatchRecord> getMatchRecords() {
+	public List<MatchRecordMessage> getMatchRecords() {
 		return matchRecords == null ? Collections.emptyList() : matchRecords;
 	}
 
-	public void addMatchRecord(MatchRecord matchRecord) {
+	public void addMatchRecord(MatchRecordMessage matchRecord) {
 		if (matchRecords == null) {
 			matchRecords = new ArrayList<>();
 		}
@@ -37,4 +37,15 @@ public class MatchResult {
 		return matchRecords == null;
 	}
 
+	@Override
+	public String toString() {
+		List<MatchRecordMessage> records = getMatchRecords();
+		StringBuilder sb = new StringBuilder(128).append("MatchResult: taker status=").append(this.takerStatus)
+				.append(", records=").append(records.size())
+				.append("\n----------------------------------------------------------------------\n");
+		for (MatchRecordMessage record : records) {
+			sb.append(record).append("\n");
+		}
+		return sb.append("----------------------------------------------------------------------").toString();
+	}
 }

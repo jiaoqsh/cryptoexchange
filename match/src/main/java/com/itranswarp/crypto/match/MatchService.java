@@ -39,11 +39,11 @@ public class MatchService extends AbstractRunnableService {
 	final MessageQueue<TickMessage> tickMessageQueue;
 
 	// send match result to queue:
-	final MessageQueue<MatchResult> matchResultMessageQueue;
+	final MessageQueue<MatchResultMessage> matchResultMessageQueue;
 
 	// holds order books:
-	final OrderBook buyBook;
-	final OrderBook sellBook;
+	final OrderBook buyBook = new OrderBook(OrderBook.OrderBookType.BUY);
+	final OrderBook sellBook = new OrderBook(OrderBook.OrderBookType.SELL);
 
 	// track market price:
 	BigDecimal marketPrice = BigDecimal.ZERO;
@@ -56,12 +56,10 @@ public class MatchService extends AbstractRunnableService {
 
 	public MatchService(@Autowired @Qualifier("orderMessageQueue") MessageQueue<OrderMessage> orderMessageQueue,
 			@Autowired @Qualifier("tickMessageQueue") MessageQueue<TickMessage> tickMessageQueue,
-			@Autowired @Qualifier("matchResultMessageQueue") MessageQueue<MatchResult> matchResultMessageQueue) {
+			@Autowired @Qualifier("matchResultMessageQueue") MessageQueue<MatchResultMessage> matchResultMessageQueue) {
 		this.orderMessageQueue = orderMessageQueue;
 		this.tickMessageQueue = tickMessageQueue;
 		this.matchResultMessageQueue = matchResultMessageQueue;
-		this.buyBook = new OrderBook(OrderBook.OrderBookType.BUY);
-		this.sellBook = new OrderBook(OrderBook.OrderBookType.SELL);
 	}
 
 	/**
@@ -100,6 +98,7 @@ public class MatchService extends AbstractRunnableService {
 	 *            Order object.
 	 */
 	void processOrder(OrderMessage order) throws InterruptedException {
+		logger.info("Process order: " + order);
 		switch (order.type) {
 		case BUY_LIMIT:
 			processLimitOrder(order, order.type, this.sellBook, this.buyBook);
@@ -119,7 +118,7 @@ public class MatchService extends AbstractRunnableService {
 	void processLimitOrder(OrderMessage taker, OrderType orderType, OrderBook makerBook, OrderBook takerBook)
 			throws InterruptedException {
 		final long ts = taker.createdAt;
-		MatchResult matchResult = new MatchResult(ts);
+		MatchResultMessage matchResult = new MatchResultMessage(ts);
 		for (;;) {
 			OrderMessage maker = makerBook.getFirst();
 			if (maker == null) {
@@ -141,7 +140,7 @@ public class MatchService extends AbstractRunnableService {
 			OrderStatus makerStatus = maker.amount.compareTo(BigDecimal.ZERO) == 0 ? OrderStatus.FULLY_FILLED
 					: OrderStatus.PARTIAL_FILLED;
 			notifyTick(taker.symbol, taker.createdAt, this.marketPrice, amount);
-			matchResult.addMatchRecord(new MatchRecord(taker.id, maker.id, this.marketPrice, amount, makerStatus));
+			matchResult.addMatchRecord(new MatchRecordMessage(taker.orderId, maker.orderId, this.marketPrice, amount, makerStatus));
 			updateHashStatus(taker, maker, this.marketPrice, amount);
 			// should remove maker from order book?
 			if (makerStatus == OrderStatus.FULLY_FILLED) {
@@ -178,7 +177,7 @@ public class MatchService extends AbstractRunnableService {
 		this.tickMessageQueue.sendMessage(tick);
 	}
 
-	void notifyMatchResult(MatchResult matchResult) throws InterruptedException {
+	void notifyMatchResult(MatchResultMessage matchResult) throws InterruptedException {
 		this.matchResultMessageQueue.sendMessage(matchResult);
 	}
 
@@ -186,9 +185,9 @@ public class MatchService extends AbstractRunnableService {
 
 	private void updateHashStatus(OrderMessage taker, OrderMessage maker, BigDecimal price, BigDecimal amount) {
 		hashBuffer.clear();
-		hashBuffer.putLong(taker.id);
+		hashBuffer.putLong(taker.orderId);
 		hashBuffer.putInt(taker.type.value);
-		hashBuffer.putLong(maker.id);
+		hashBuffer.putLong(maker.orderId);
 		hashBuffer.putInt(maker.type.value);
 		hashBuffer.put(price.toString().getBytes(StandardCharsets.UTF_8));
 		hashBuffer.put(amount.toString().getBytes(StandardCharsets.UTF_8));

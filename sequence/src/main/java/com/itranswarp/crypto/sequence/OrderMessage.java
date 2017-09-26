@@ -8,7 +8,7 @@ import com.itranswarp.crypto.symbol.Symbol;
 
 public class OrderMessage {
 
-	public final long id;
+	public final long orderId;
 	public final long seqId;
 	public final long userId;
 	public final Symbol symbol;
@@ -22,7 +22,7 @@ public class OrderMessage {
 	 */
 	public OrderMessage(long seqId, Order order) {
 		this.seqId = seqId;
-		this.id = order.id;
+		this.orderId = order.id;
 		this.userId = order.userId;
 		this.symbol = order.symbol;
 		this.type = order.type;
@@ -33,15 +33,16 @@ public class OrderMessage {
 
 	@Override
 	public boolean equals(Object o) {
-		return this.id == ((OrderMessage) o).id;
+		return this.seqId == ((OrderMessage) o).seqId;
 	}
 
 	@Override
 	public int hashCode() {
-		return Long.hashCode(this.id);
+		return Long.hashCode(this.seqId);
 	}
 
 	public String toString() {
-		return String.format("%s: $%.2f %.4f   id:%d", (type == OrderType.BUY_LIMIT ? "B" : "S"), price, amount, id);
+		return String.format("%s order: $%.2f %.4f orderId=%d, seqId=%d",
+				(this.type == OrderType.BUY_LIMIT ? "B" : "S"), this.price, this.amount, this.orderId, this.seqId);
 	}
 }

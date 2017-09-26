@@ -26,8 +26,8 @@ public class MatchServiceTest {
 		MessageQueue<OrderMessage> orderQueue2 = new MessageQueue<>(10000);
 		MessageQueue<TickMessage> tickQueue1 = new MessageQueue<>(1000);
 		MessageQueue<TickMessage> tickQueue2 = new MessageQueue<>(1000);
-		MessageQueue<MatchResult> matchResultQueue1 = new MessageQueue<>(1000000);
-		MessageQueue<MatchResult> matchResultQueue2 = new MessageQueue<>(1000000);
+		MessageQueue<MatchResultMessage> matchResultQueue1 = new MessageQueue<>(1000000);
+		MessageQueue<MatchResultMessage> matchResultQueue2 = new MessageQueue<>(1000000);
 
 		TickHandler tickHandler1 = new TickHandler(tickQueue1);
 		TickHandler tickHandler2 = new TickHandler(tickQueue2);

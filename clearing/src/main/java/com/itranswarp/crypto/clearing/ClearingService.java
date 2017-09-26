@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
-import com.itranswarp.crypto.match.MatchResult;
+import com.itranswarp.crypto.match.MatchResultMessage;
 import com.itranswarp.crypto.queue.MessageQueue;
 import com.itranswarp.crypto.store.AbstractRunnableService;
 
@@ -19,21 +19,14 @@ public class ClearingService extends AbstractRunnableService {
 	@Autowired
 	ClearingHandlerService clearingHandler;
 
-	final MessageQueue<MatchResult> matchResultMessageQueue;
-
-	public ClearingService(
-			@Autowired @Qualifier("matchResultMessageQueue") MessageQueue<MatchResult> matchResultMessageQueue) {
-		this.matchResultMessageQueue = matchResultMessageQueue;
-	}
-
-	void processMatchResult(MatchResult matchResult ) {
-		clearingHandler.processMatchResult(matchResult);
-	}
+	@Autowired
+	@Qualifier("matchResultMessageQueue")
+	MessageQueue<MatchResultMessage> matchResultMessageQueue;
 
 	@Override
 	protected void process() throws InterruptedException {
 		while (true) {
-			MatchResult matchResult = matchResultMessageQueue.getMessage();
+			MatchResultMessage matchResult = matchResultMessageQueue.getMessage();
 			processMatchResult(matchResult);
 		}
 	}
@@ -41,7 +34,7 @@ public class ClearingService extends AbstractRunnableService {
 	@Override
 	protected void clean() throws InterruptedException {
 		while (true) {
-			MatchResult matchResult = matchResultMessageQueue.getMessage(10);
+			MatchResultMessage matchResult = matchResultMessageQueue.getMessage(10);
 			if (matchResult != null) {
 				processMatchResult(matchResult);
 			} else {
@@ -49,4 +42,10 @@ public class ClearingService extends AbstractRunnableService {
 			}
 		}
 	}
+
+	void processMatchResult(MatchResultMessage matchResult) {
+		logger.info("Process match result:\n" + matchResult);
+		clearingHandler.processMatchResult(matchResult);
+	}
+
 }
