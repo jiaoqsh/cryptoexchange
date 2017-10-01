@@ -15,7 +15,7 @@ public class User extends AbstractEntity {
 		PENDING, NORMAL
 	}
 
-	@Column(nullable = false, length = 20)
+	@Column(length = VAR_ENUM, nullable = false)
 	public UserType type;
 
 	@Column(nullable = false, updatable = false, length = 50)

@@ -23,6 +23,7 @@ public class AbstractEntity implements Serializable {
 	// default big decimal storage type: DECIMAL(PRECISION, SCALE)
 	protected static final int PRECISION = 20;
 	protected static final int SCALE = 8;
+	protected static final int VAR_ENUM = 20;
 
 	/**
 	 * Primary key: auto-increment long.

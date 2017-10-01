@@ -18,7 +18,7 @@ public class SpotAccount extends AbstractEntity {
 	@Column(nullable = false)
 	public long userId;
 
-	@Column(nullable = false, length = 20)
+	@Column(length = VAR_ENUM, nullable = false)
 	public Currency currency;
 
 	@Column(nullable = false, precision = PRECISION, scale = SCALE)

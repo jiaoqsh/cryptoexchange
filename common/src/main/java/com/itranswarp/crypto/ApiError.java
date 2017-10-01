@@ -8,10 +8,7 @@ public enum ApiError {
 
 	ACCOUNT_FREEZE_FAILED, ACCOUNT_UNFREEZE_FAILED, ACCOUNT_ADD_BALANCE_FAILED, USER_EMAIL_EXIST,
 
-	/**
-	 * Invalid order.
-	 */
-	ORDER_INVALID,
+	ORDER_NOT_FOUND, ORDER_CANNOT_CANCEL,
 
 	/**
 	 * All other internal server error.
