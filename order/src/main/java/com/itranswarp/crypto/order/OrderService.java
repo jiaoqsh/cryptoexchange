@@ -6,7 +6,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
+import com.itranswarp.crypto.ApiError;
+import com.itranswarp.crypto.ApiException;
 import com.itranswarp.crypto.account.AccountService;
+import com.itranswarp.crypto.enums.OrderType;
 import com.itranswarp.crypto.queue.MessageQueue;
 import com.itranswarp.crypto.store.AbstractService;
 import com.itranswarp.crypto.symbol.Symbol;
@@ -39,4 +42,20 @@ public class OrderService extends AbstractService {
 		orderSequenceQueue.sendMessage(order);
 		return order;
 	}
+
+	public Order createCancelOrder(OrderType cancelType, Order orderToBeCancelled) throws InterruptedException {
+		Order order = orderHandler.createCancelOrder(cancelType, orderToBeCancelled);
+		logger.info("order cancelled: id=" + order.id + ", cancel=" + orderToBeCancelled);
+		orderSequenceQueue.sendMessage(order);
+		return order;
+	}
+
+	public Order getOrder(long id) {
+		Order order = db.fetch(Order.class, id);
+		if (order == null) {
+			throw new ApiException(ApiError.ORDER_NOT_FOUND);
+		}
+		return order;
+	}
+
 }

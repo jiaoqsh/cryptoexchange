@@ -25,12 +25,12 @@ public enum OrderType {
 	/**
 	 * Cancel buy order.
 	 */
-	BUY_CANCEL(5),
+	CANCEL_BUY_LIMIT(5),
 
 	/**
 	 * Cancel sell order.
 	 */
-	SELL_CANCEL(6);
+	CANCEL_SELL_LIMIT(6);
 
 	public final int value;
 

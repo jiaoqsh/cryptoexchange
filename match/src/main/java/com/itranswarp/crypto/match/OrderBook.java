@@ -3,11 +3,11 @@ package com.itranswarp.crypto.match;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.List;
-import java.util.TreeSet;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 
-import com.itranswarp.crypto.sequence.OrderMessage;
+import com.itranswarp.crypto.sequence.OrderDirection;
 
 /**
  * Order book for sell or buy.
@@ -16,16 +16,12 @@ import com.itranswarp.crypto.sequence.OrderMessage;
  */
 public class OrderBook {
 
-	public static enum OrderBookType {
-		SELL, BUY
-	}
-
 	/**
 	 * Sorted by sell.
 	 */
-	static final Comparator<OrderMessage> SORT_SELL = new Comparator<OrderMessage>() {
+	static final Comparator<OrderItem> SORT_SELL = new Comparator<OrderItem>() {
 		@Override
-		public int compare(OrderMessage o1, OrderMessage o2) {
+		public int compare(OrderItem o1, OrderItem o2) {
 			BigDecimal p1 = o1.price;
 			BigDecimal p2 = o2.price;
 			int n = p1.compareTo(p2);
@@ -50,9 +46,9 @@ public class OrderBook {
 	/**
 	 * Sorted by buy.
 	 */
-	static final Comparator<OrderMessage> SORT_BUY = new Comparator<OrderMessage>() {
+	static final Comparator<OrderItem> SORT_BUY = new Comparator<OrderItem>() {
 		@Override
-		public int compare(OrderMessage o1, OrderMessage o2) {
+		public int compare(OrderItem o1, OrderItem o2) {
 			BigDecimal p1 = o1.price;
 			BigDecimal p2 = o2.price;
 			int n = p1.compareTo(p2);
@@ -74,21 +70,22 @@ public class OrderBook {
 		}
 	};
 
-	final OrderBookType type;
-	// holds all orders:
-	final TreeSet<OrderMessage> book;
+	// BUY or SELL?
+	final OrderDirection direction;
 
-	public OrderBook(OrderBookType type) {
-		this.type = type;
-		this.book = new TreeSet<>(type == OrderBookType.SELL ? SORT_SELL : SORT_BUY);
+	// holds all orders:
+	final TreeMap<OrderItem, OrderItem> book;
+
+	public OrderBook(OrderDirection direction) {
+		this.direction = direction;
+		this.book = new TreeMap<>(direction == OrderDirection.BUY ? SORT_BUY : SORT_SELL);
 	}
 
 	public List<OrderSnapshot> getSnapshot(int maxItems) {
 		List<OrderSnapshot> list = new ArrayList<>(maxItems);
 		OrderSnapshot lastLiveOrder = null;
-		Iterator<OrderMessage> it = this.book.iterator();
-		while (it.hasNext()) {
-			OrderMessage order = it.next();
+		for (Entry<OrderItem, OrderItem> entry : book.entrySet()) {
+			OrderItem order = entry.getKey();
 			if (lastLiveOrder == null) {
 				// init:
 				lastLiveOrder = new OrderSnapshot(order.price, order.amount);
@@ -113,16 +110,23 @@ public class OrderBook {
 	 * 
 	 * @return Order or null if empty.
 	 */
-	public OrderMessage getFirst() {
-		return this.book.isEmpty() ? null : this.book.first();
+	public OrderItem getFirst() {
+		return this.book.isEmpty() ? null : this.book.firstKey();
 	}
 
-	public boolean remove(OrderMessage order) {
+	/**
+	 * Remove the order from order book.
+	 * 
+	 * @param order
+	 *            The order message.
+	 * @return True if exists and are removed.
+	 */
+	public OrderItem remove(OrderItem order) {
 		return this.book.remove(order);
 	}
 
-	public boolean add(OrderMessage order) {
-		return this.book.add(order);
+	public boolean add(OrderItem order) {
+		return this.book.put(order, order) == null;
 	}
 
 	public int size() {
@@ -131,11 +135,29 @@ public class OrderBook {
 
 	public void dump(boolean reverse) {
 		int n = 0;
-		Iterator<OrderMessage> it = reverse ? this.book.descendingIterator() : this.book.iterator();
-		while (it.hasNext() && n < 10) {
+		for (Entry<OrderItem, OrderItem> entry : (reverse ? this.book.descendingMap() : this.book).entrySet()) {
 			n++;
-			System.out.println(it.next());
+			System.out.println(entry.getKey());
+			if (n >= 10) {
+				break;
+			}
 		}
+	}
+
+	/**
+	 * Only for unit test.
+	 * 
+	 * @param reverse
+	 * @return
+	 */
+	String[] dumps(boolean reverse) {
+		List<String> list = new ArrayList<>();
+		for (Entry<OrderItem, OrderItem> entry : (reverse ? this.book.descendingMap() : this.book).entrySet()) {
+			OrderItem item = entry.getKey();
+			String line = item.seqId + " " + item.direction.name().toLowerCase() + " " + item.price + " " + item.amount;
+			list.add(line);
+		}
+		return list.toArray(new String[list.size()]);
 	}
 
 }

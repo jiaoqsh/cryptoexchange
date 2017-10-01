@@ -2,6 +2,7 @@ package com.itranswarp.crypto.match;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -12,9 +13,15 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import com.itranswarp.crypto.enums.OrderStatus;
-import com.itranswarp.crypto.enums.OrderType;
+import com.itranswarp.crypto.match.message.CancelledMessage;
+import com.itranswarp.crypto.match.message.MatchMessage;
+import com.itranswarp.crypto.match.message.MatchResultMessage;
 import com.itranswarp.crypto.queue.MessageQueue;
-import com.itranswarp.crypto.sequence.OrderMessage;
+import com.itranswarp.crypto.sequence.OrderDirection;
+import com.itranswarp.crypto.sequence.message.CancelOrderMessage;
+import com.itranswarp.crypto.sequence.message.LimitOrderMessage;
+import com.itranswarp.crypto.sequence.message.MarketOrderMessage;
+import com.itranswarp.crypto.sequence.message.OrderMessage;
 import com.itranswarp.crypto.store.AbstractRunnableService;
 import com.itranswarp.crypto.symbol.Symbol;
 
@@ -32,18 +39,26 @@ public class MatchService extends AbstractRunnableService {
 
 	static final BigDecimal PRICE_DELTA = new BigDecimal("0.01");
 
-	// get order from queue:
-	final MessageQueue<OrderMessage> orderMessageQueue;
+	final Symbol symbol = Symbol.BTC_USD;
+
+	// get sequenced-order from queue:
+	@Autowired
+	@Qualifier("orderMessageQueue")
+	MessageQueue<OrderMessage> orderMessageQueue;
 
 	// send tick to queue:
-	final MessageQueue<TickMessage> tickMessageQueue;
+	@Autowired
+	@Qualifier("tickMessageQueue")
+	MessageQueue<TickMessage> tickMessageQueue;
 
 	// send match result to queue:
-	final MessageQueue<MatchResultMessage> matchResultMessageQueue;
+	@Autowired
+	@Qualifier("matchMessageQueue")
+	MessageQueue<MatchMessage> matchMessageQueue;
 
 	// holds order books:
-	final OrderBook buyBook = new OrderBook(OrderBook.OrderBookType.BUY);
-	final OrderBook sellBook = new OrderBook(OrderBook.OrderBookType.SELL);
+	final OrderBook buyBook = new OrderBook(OrderDirection.BUY);
+	final OrderBook sellBook = new OrderBook(OrderDirection.SELL);
 
 	// track market price:
 	BigDecimal marketPrice = BigDecimal.ZERO;
@@ -54,12 +69,7 @@ public class MatchService extends AbstractRunnableService {
 	// depth snapshot:
 	DepthSnapshot depthSnapshot = new DepthSnapshot(0, Collections.emptyList(), Collections.emptyList());
 
-	public MatchService(@Autowired @Qualifier("orderMessageQueue") MessageQueue<OrderMessage> orderMessageQueue,
-			@Autowired @Qualifier("tickMessageQueue") MessageQueue<TickMessage> tickMessageQueue,
-			@Autowired @Qualifier("matchResultMessageQueue") MessageQueue<MatchResultMessage> matchResultMessageQueue) {
-		this.orderMessageQueue = orderMessageQueue;
-		this.tickMessageQueue = tickMessageQueue;
-		this.matchResultMessageQueue = matchResultMessageQueue;
+	public MatchService() {
 	}
 
 	/**
@@ -97,37 +107,46 @@ public class MatchService extends AbstractRunnableService {
 	 * @param order
 	 *            Order object.
 	 */
-	void processOrder(OrderMessage order) throws InterruptedException {
-		logger.info("Process order: " + order);
-		switch (order.type) {
-		case BUY_LIMIT:
-			processLimitOrder(order, order.type, this.sellBook, this.buyBook);
-			break;
-		case SELL_LIMIT:
-			processLimitOrder(order, order.type, this.buyBook, this.sellBook);
-			break;
-		case BUY_CANCEL:
-		case SELL_CANCEL:
-		case BUY_MARKET:
-		case SELL_MARKET:
-		default:
-			throw new RuntimeException("Unsupported type.");
+	void processOrder(OrderMessage message) throws InterruptedException {
+		if (message instanceof LimitOrderMessage) {
+			// process limit order:
+			LimitOrderMessage limitOrderMessage = (LimitOrderMessage) message;
+			OrderItem lItem = new OrderItem(limitOrderMessage.direction, limitOrderMessage.seqId,
+					limitOrderMessage.orderId, limitOrderMessage.price, limitOrderMessage.amount,
+					limitOrderMessage.createdAt);
+			OrderBook lMakerBook = limitOrderMessage.direction == OrderDirection.BUY ? this.sellBook : this.buyBook;
+			OrderBook lTakerBook = limitOrderMessage.direction == OrderDirection.BUY ? this.buyBook : this.sellBook;
+			doLimitOrder(lItem, lMakerBook, lTakerBook);
+		} else if (message instanceof MarketOrderMessage) {
+			// process market order:
+			MarketOrderMessage marketOrderMessage = (MarketOrderMessage) message;
+			OrderItem mItem = new OrderItem(marketOrderMessage.direction, marketOrderMessage.seqId,
+					marketOrderMessage.orderId, null, marketOrderMessage.amount, marketOrderMessage.createdAt);
+			OrderBook mMakerBook = marketOrderMessage.direction == OrderDirection.BUY ? this.sellBook : this.buyBook;
+			OrderBook mTakerBook = marketOrderMessage.direction == OrderDirection.BUY ? this.buyBook : this.sellBook;
+			doMarketOrder(mItem, mMakerBook, mTakerBook);
+		} else if (message instanceof CancelOrderMessage) {
+			// process cancel order:
+			CancelOrderMessage cancelOrderMessage = (CancelOrderMessage) message;
+			OrderBook cancelInBook = cancelOrderMessage.direction == OrderDirection.BUY ? this.buyBook : this.sellBook;
+			doCancelOrder(cancelOrderMessage, cancelInBook);
+		} else {
+			throw new RuntimeException("Unsupported type of message: " + message.getClass().getName());
 		}
 	}
 
-	void processLimitOrder(OrderMessage taker, OrderType orderType, OrderBook makerBook, OrderBook takerBook)
-			throws InterruptedException {
+	void doLimitOrder(OrderItem taker, OrderBook makerBook, OrderBook takerBook) throws InterruptedException {
 		final long ts = taker.createdAt;
-		MatchResultMessage matchResult = new MatchResultMessage(ts);
+		MatchResultMessage matchResult = new MatchResultMessage(taker.orderId, ts);
 		for (;;) {
-			OrderMessage maker = makerBook.getFirst();
+			OrderItem maker = makerBook.getFirst();
 			if (maker == null) {
 				// empty order book:
 				break;
 			}
-			if (orderType == OrderType.BUY_LIMIT && taker.price.compareTo(maker.price) < 0) {
+			if (taker.direction == OrderDirection.BUY && taker.price.compareTo(maker.price) < 0) {
 				break;
-			} else if (orderType == OrderType.SELL_LIMIT && taker.price.compareTo(maker.price) > 0) {
+			} else if (taker.direction == OrderDirection.SELL && taker.price.compareTo(maker.price) > 0) {
 				break;
 			}
 			// match with maker.price:
@@ -139,8 +158,9 @@ public class MatchService extends AbstractRunnableService {
 			// is maker fully filled?
 			OrderStatus makerStatus = maker.amount.compareTo(BigDecimal.ZERO) == 0 ? OrderStatus.FULLY_FILLED
 					: OrderStatus.PARTIAL_FILLED;
-			notifyTick(taker.symbol, taker.createdAt, this.marketPrice, amount);
-			matchResult.addMatchRecord(new MatchRecordMessage(taker.orderId, maker.orderId, this.marketPrice, amount, makerStatus));
+			notifyTick(this.symbol, ts, this.marketPrice, amount);
+			matchResult.addMatchRecord(
+					new MatchRecordMessage(taker.orderId, maker.orderId, this.marketPrice, amount, makerStatus));
 			updateHashStatus(taker, maker, this.marketPrice, amount);
 			// should remove maker from order book?
 			if (makerStatus == OrderStatus.FULLY_FILLED) {
@@ -162,6 +182,87 @@ public class MatchService extends AbstractRunnableService {
 		updateDepthSnapshot(ts);
 	}
 
+	void doMarketOrder(OrderItem taker, OrderBook makerBook, OrderBook takerBook) throws InterruptedException {
+		final long ts = taker.createdAt;
+		final int scale = this.symbol.base.getScale();
+		MatchResultMessage matchResult = new MatchResultMessage(taker.orderId, ts);
+		for (;;) {
+			OrderItem maker = makerBook.getFirst();
+			if (maker == null) {
+				// empty order book:
+				break;
+			}
+			if (taker.direction == OrderDirection.BUY) {
+				// max amount to exchange:
+				BigDecimal amount = taker.amount.divide(maker.price, scale, RoundingMode.DOWN);
+				if (amount.signum() == 0) {
+					// amount = 0:
+					break;
+				}
+				amount = amount.min(maker.amount);
+				// match with maker.price:
+				this.marketPrice = maker.price;
+				// how much spend:
+				BigDecimal spend = maker.price.multiply(amount);
+				taker.amount = taker.amount.subtract(spend);
+				maker.amount = maker.amount.subtract(amount);
+				// is maker fully filled?
+				OrderStatus makerStatus = maker.amount.compareTo(BigDecimal.ZERO) == 0 ? OrderStatus.FULLY_FILLED
+						: OrderStatus.PARTIAL_FILLED;
+				notifyTick(this.symbol, ts, this.marketPrice, amount);
+				matchResult.addMatchRecord(
+						new MatchRecordMessage(taker.orderId, maker.orderId, this.marketPrice, amount, makerStatus));
+				updateHashStatus(taker, maker, this.marketPrice, amount);
+				// should remove maker from order book?
+				if (makerStatus == OrderStatus.FULLY_FILLED) {
+					makerBook.remove(maker);
+				}
+			} else {
+				// taker.direction==OrderDirection.SELL:
+				// max amount to exchange:
+				BigDecimal amount = taker.amount.min(maker.amount);
+				if (amount.signum() == 0) {
+					break;
+				}
+				// match with maker.price:
+				this.marketPrice = maker.price;
+				taker.amount = taker.amount.subtract(amount);
+				maker.amount = maker.amount.subtract(amount);
+				// is maker fully filled?
+				OrderStatus makerStatus = maker.amount.compareTo(BigDecimal.ZERO) == 0 ? OrderStatus.FULLY_FILLED
+						: OrderStatus.PARTIAL_FILLED;
+				notifyTick(this.symbol, ts, this.marketPrice, amount);
+				matchResult.addMatchRecord(
+						new MatchRecordMessage(taker.orderId, maker.orderId, this.marketPrice, amount, makerStatus));
+				updateHashStatus(taker, maker, this.marketPrice, amount);
+				// should remove maker from order book?
+				if (makerStatus == OrderStatus.FULLY_FILLED) {
+					makerBook.remove(maker);
+				}
+			}
+		}
+		// how much left:
+		boolean hasMatchRecord = matchResult.hasMatchRecord();
+		matchResult.takerStatus = hasMatchRecord ? OrderStatus.FULLY_FILLED : OrderStatus.FULLY_CANCELLED;
+		matchResult.takerAmount = taker.amount;
+		notifyMatchResult(matchResult);
+		updateDepthSnapshot(ts);
+	}
+
+	void doCancelOrder(CancelOrderMessage order, OrderBook orderBook) throws InterruptedException {
+		OrderItem msg = new OrderItem(order.direction, order.refSeqId, order.refOrderId, order.price,
+				/* ignore amount */ null, order.createdAt);
+		OrderItem origin = orderBook.remove(msg);
+		if (origin == null) {
+			// WARNING: no such order item exist:
+		} else {
+			updateHashStatus(msg);
+		}
+		MatchMessage message = new CancelledMessage(origin != null, order.orderId, order.refOrderId, origin.amount,
+				order.createdAt);
+		notifyMatchResult(message);
+	}
+
 	/**
 	 * Update depth snapshot. This method MUST be only invoked in MatchService's
 	 * process-thread.
@@ -177,18 +278,28 @@ public class MatchService extends AbstractRunnableService {
 		this.tickMessageQueue.sendMessage(tick);
 	}
 
-	void notifyMatchResult(MatchResultMessage matchResult) throws InterruptedException {
-		this.matchResultMessageQueue.sendMessage(matchResult);
+	void notifyMatchResult(MatchMessage matchMessage) throws InterruptedException {
+		this.matchMessageQueue.sendMessage(matchMessage);
 	}
 
 	private final ByteBuffer hashBuffer = ByteBuffer.allocate(128);
 
-	private void updateHashStatus(OrderMessage taker, OrderMessage maker, BigDecimal price, BigDecimal amount) {
+	private void updateHashStatus(OrderItem order) {
 		hashBuffer.clear();
+		hashBuffer.putInt(order.direction.value);
+		hashBuffer.putLong(order.orderId);
+		hashBuffer.putLong(order.seqId);
+		this.hashStatus.updateStatus(hashBuffer);
+	}
+
+	private void updateHashStatus(OrderItem taker, OrderItem maker, BigDecimal price, BigDecimal amount) {
+		hashBuffer.clear();
+		hashBuffer.putInt(taker.direction.value);
 		hashBuffer.putLong(taker.orderId);
-		hashBuffer.putInt(taker.type.value);
+		hashBuffer.putLong(taker.seqId);
+		hashBuffer.putInt(maker.direction.value);
 		hashBuffer.putLong(maker.orderId);
-		hashBuffer.putInt(maker.type.value);
+		hashBuffer.putLong(maker.seqId);
 		hashBuffer.put(price.toString().getBytes(StandardCharsets.UTF_8));
 		hashBuffer.put(amount.toString().getBytes(StandardCharsets.UTF_8));
 		this.hashStatus.updateStatus(hashBuffer);

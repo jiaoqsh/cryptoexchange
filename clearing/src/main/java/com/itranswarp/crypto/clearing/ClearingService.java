@@ -4,7 +4,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
-import com.itranswarp.crypto.match.MatchResultMessage;
+import com.itranswarp.crypto.match.message.CancelledMessage;
+import com.itranswarp.crypto.match.message.MatchMessage;
+import com.itranswarp.crypto.match.message.MatchResultMessage;
 import com.itranswarp.crypto.queue.MessageQueue;
 import com.itranswarp.crypto.store.AbstractRunnableService;
 
@@ -20,32 +22,38 @@ public class ClearingService extends AbstractRunnableService {
 	ClearingHandlerService clearingHandler;
 
 	@Autowired
-	@Qualifier("matchResultMessageQueue")
-	MessageQueue<MatchResultMessage> matchResultMessageQueue;
+	@Qualifier("matchMessageQueue")
+	MessageQueue<MatchMessage> matchMessageQueue;
 
 	@Override
 	protected void process() throws InterruptedException {
 		while (true) {
-			MatchResultMessage matchResult = matchResultMessageQueue.getMessage();
-			processMatchResult(matchResult);
+			MatchMessage msg = matchMessageQueue.getMessage();
+			processMatchMessage(msg);
 		}
 	}
 
 	@Override
 	protected void clean() throws InterruptedException {
 		while (true) {
-			MatchResultMessage matchResult = matchResultMessageQueue.getMessage(10);
-			if (matchResult != null) {
-				processMatchResult(matchResult);
+			MatchMessage msg = matchMessageQueue.getMessage(10);
+			if (msg != null) {
+				processMatchMessage(msg);
 			} else {
 				break;
 			}
 		}
 	}
 
-	void processMatchResult(MatchResultMessage matchResult) {
-		logger.info("Process match result:\n" + matchResult);
-		clearingHandler.processMatchResult(matchResult);
+	void processMatchMessage(MatchMessage msg) {
+		logger.info("Process match message:\n" + msg);
+		if (msg instanceof MatchResultMessage) {
+			clearingHandler.processMatched((MatchResultMessage) msg);
+		} else if (msg instanceof CancelledMessage) {
+			clearingHandler.processCancelled((CancelledMessage) msg);
+		} else {
+			logger.error("Invalid MatchMessage type: " + msg.getClass().getName());
+		}
 	}
 
 }

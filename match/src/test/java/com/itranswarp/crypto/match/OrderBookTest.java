@@ -8,29 +8,37 @@ import java.util.Random;
 
 import org.junit.Test;
 
-import com.itranswarp.crypto.enums.OrderType;
-import com.itranswarp.crypto.order.Order;
-import com.itranswarp.crypto.sequence.OrderMessage;
+import com.itranswarp.crypto.sequence.OrderDirection;
 
 public class OrderBookTest {
 
 	@Test
+	public void testGetOrderItem() {
+		OrderBook sell = new OrderBook(OrderDirection.SELL);
+		sell.add(createOrder(OrderDirection.SELL, 1, "19.05", "0.2"));
+		OrderItem key = createOrder(OrderDirection.SELL, 1, "19.05", "0");
+		// get original item should still be 0.2:
+		OrderItem value = sell.remove(key);
+		assertEquals(value.amount, new BigDecimal("0.2"));
+	}
+
+	@Test
 	public void testGetSellBookFirst() {
-		OrderBook sell = new OrderBook(OrderBook.OrderBookType.SELL);
+		OrderBook sell = new OrderBook(OrderDirection.SELL);
 		assertNull(sell.getFirst());
 		// 19.05 id=1,7
 		// 18.87 id=4,5
 		// 17.35 id=2
 		// 15.41 id=3,6
 		// ---------------- price
-		sell.add(createOrder(OrderType.SELL_LIMIT, 1, "19.05", "0.1"));
-		sell.add(createOrder(OrderType.SELL_LIMIT, 2, "17.35", "0.2"));
-		sell.add(createOrder(OrderType.SELL_LIMIT, 3, "15.41", "0.3"));
-		sell.add(createOrder(OrderType.SELL_LIMIT, 4, "18.87", "0.4"));
-		sell.add(createOrder(OrderType.SELL_LIMIT, 5, "18.87", "0.5"));
-		sell.add(createOrder(OrderType.SELL_LIMIT, 6, "15.41", "0.6"));
-		sell.add(createOrder(OrderType.SELL_LIMIT, 7, "19.05", "0.7"));
-		OrderMessage m = sell.getFirst();
+		sell.add(createOrder(OrderDirection.SELL, 1, "19.05", "0.1"));
+		sell.add(createOrder(OrderDirection.SELL, 2, "17.35", "0.2"));
+		sell.add(createOrder(OrderDirection.SELL, 3, "15.41", "0.3"));
+		sell.add(createOrder(OrderDirection.SELL, 4, "18.87", "0.4"));
+		sell.add(createOrder(OrderDirection.SELL, 5, "18.87", "0.5"));
+		sell.add(createOrder(OrderDirection.SELL, 6, "15.41", "0.6"));
+		sell.add(createOrder(OrderDirection.SELL, 7, "19.05", "0.7"));
+		OrderItem m = sell.getFirst();
 		assertNotNull(m);
 		assertEquals(3, m.orderId);
 		assertTrue(m.price.compareTo(new BigDecimal("15.41")) == 0);
@@ -39,21 +47,21 @@ public class OrderBookTest {
 
 	@Test
 	public void testGetBuyBookFirst() {
-		OrderBook buy = new OrderBook(OrderBook.OrderBookType.BUY);
+		OrderBook buy = new OrderBook(OrderDirection.BUY);
 		assertNull(buy.getFirst());
 		// ---------------- price
 		// 19.05 id=1,7
 		// 18.87 id=4,5
 		// 17.35 id=2
 		// 15.41 id=3,6
-		buy.add(createOrder(OrderType.BUY_LIMIT, 1, "19.05", "0.1"));
-		buy.add(createOrder(OrderType.BUY_LIMIT, 2, "17.35", "0.2"));
-		buy.add(createOrder(OrderType.BUY_LIMIT, 3, "15.41", "0.3"));
-		buy.add(createOrder(OrderType.BUY_LIMIT, 4, "18.87", "0.4"));
-		buy.add(createOrder(OrderType.BUY_LIMIT, 5, "18.87", "0.5"));
-		buy.add(createOrder(OrderType.BUY_LIMIT, 6, "15.41", "0.6"));
-		buy.add(createOrder(OrderType.BUY_LIMIT, 7, "19.05", "0.7"));
-		OrderMessage m = buy.getFirst();
+		buy.add(createOrder(OrderDirection.BUY, 1, "19.05", "0.1"));
+		buy.add(createOrder(OrderDirection.BUY, 2, "17.35", "0.2"));
+		buy.add(createOrder(OrderDirection.BUY, 3, "15.41", "0.3"));
+		buy.add(createOrder(OrderDirection.BUY, 4, "18.87", "0.4"));
+		buy.add(createOrder(OrderDirection.BUY, 5, "18.87", "0.5"));
+		buy.add(createOrder(OrderDirection.BUY, 6, "15.41", "0.6"));
+		buy.add(createOrder(OrderDirection.BUY, 7, "19.05", "0.7"));
+		OrderItem m = buy.getFirst();
 		assertNotNull(m);
 		assertEquals(1, m.orderId);
 		assertTrue(m.price.compareTo(new BigDecimal("19.05")) == 0);
@@ -62,29 +70,25 @@ public class OrderBookTest {
 
 	public static void main(String[] args) {
 		// sell:
-		OrderBook sell = new OrderBook(OrderBook.OrderBookType.SELL);
+		OrderBook sell = new OrderBook(OrderDirection.SELL);
 		for (long id = 1; id < 20; id++) {
-			OrderMessage o = createOrder(OrderType.SELL_LIMIT, id, randomDecimal(110, 130), randomDecimal(1, 100));
+			OrderItem o = createOrder(OrderDirection.SELL, id, randomDecimal(110, 130), randomDecimal(1, 100));
 			sell.add(o);
 		}
 		sell.dump(true);
 		System.out.println("--------------------------------------------------");
 		// buy:
-		OrderBook buy = new OrderBook(OrderBook.OrderBookType.BUY);
+		OrderBook buy = new OrderBook(OrderDirection.BUY);
 		for (long id = 100; id < 120; id++) {
-			OrderMessage o = createOrder(OrderType.BUY_LIMIT, id, randomDecimal(100, 120), randomDecimal(1, 100));
+			OrderItem o = createOrder(OrderDirection.BUY, id, randomDecimal(100, 120), randomDecimal(1, 100));
 			buy.add(o);
 		}
 		buy.dump(false);
 	}
 
-	static OrderMessage createOrder(OrderType type, long id, String price, String amount) {
-		Order o = new Order();
-		o.type = type;
-		o.id = id;
-		o.price = new BigDecimal(price);
-		o.amount = new BigDecimal(amount);
-		return new OrderMessage(id + 1, o);
+	static OrderItem createOrder(OrderDirection direction, long id, String price, String amount) {
+		return new OrderItem(direction, id + 1, id, new BigDecimal(price), new BigDecimal(amount),
+				System.currentTimeMillis());
 	}
 
 	static final Random random = new Random();

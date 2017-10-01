@@ -10,11 +10,15 @@ import org.junit.Test;
 
 import com.itranswarp.crypto.RunnableResource;
 import com.itranswarp.crypto.enums.OrderType;
+import com.itranswarp.crypto.match.message.MatchMessage;
 import com.itranswarp.crypto.order.Order;
 import com.itranswarp.crypto.queue.MessageQueue;
-import com.itranswarp.crypto.sequence.OrderMessage;
+import com.itranswarp.crypto.sequence.OrderDirection;
+import com.itranswarp.crypto.sequence.message.LimitOrderMessage;
+import com.itranswarp.crypto.sequence.message.OrderMessage;
+import com.itranswarp.crypto.symbol.Symbol;
 
-public class MatchServiceTest {
+public class MatchServiceDupTest {
 
 	@Before
 	public void setUp() throws Exception {
@@ -26,8 +30,8 @@ public class MatchServiceTest {
 		MessageQueue<OrderMessage> orderQueue2 = new MessageQueue<>(10000);
 		MessageQueue<TickMessage> tickQueue1 = new MessageQueue<>(1000);
 		MessageQueue<TickMessage> tickQueue2 = new MessageQueue<>(1000);
-		MessageQueue<MatchResultMessage> matchResultQueue1 = new MessageQueue<>(1000000);
-		MessageQueue<MatchResultMessage> matchResultQueue2 = new MessageQueue<>(1000000);
+		MessageQueue<MatchMessage> matchQueue1 = new MessageQueue<>(1000000);
+		MessageQueue<MatchMessage> matchQueue2 = new MessageQueue<>(1000000);
 
 		TickHandler tickHandler1 = new TickHandler(tickQueue1);
 		TickHandler tickHandler2 = new TickHandler(tickQueue2);
@@ -35,8 +39,8 @@ public class MatchServiceTest {
 		tickHandler1.start();
 		tickHandler2.start();
 
-		MatchService matcher1 = new MatchService(orderQueue1, tickQueue1, matchResultQueue1);
-		MatchService matcher2 = new MatchService(orderQueue2, tickQueue2, matchResultQueue2);
+		MatchService matcher1 = newMatchService(orderQueue1, tickQueue1, matchQueue1);
+		MatchService matcher2 = newMatchService(orderQueue2, tickQueue2, matchQueue2);
 
 		matcher1.start();
 		matcher2.start();
@@ -56,7 +60,7 @@ public class MatchServiceTest {
 			totalAmount += amount;
 			orderQueue1.sendMessage(createOrder(buy ? OrderType.BUY_LIMIT : OrderType.SELL_LIMIT, id, price, amount));
 			orderQueue2.sendMessage(createOrder(buy ? OrderType.BUY_LIMIT : OrderType.SELL_LIMIT, id, price, amount));
-			if ((id % 1000L) == 0L) {
+			if ((id % 10000L) == 0L) {
 				System.out.print('.');
 				Thread.sleep(1);
 			}
@@ -88,13 +92,27 @@ public class MatchServiceTest {
 		System.out.println("Total tickers: " + tickQueue2.totalMessages());
 	}
 
+	static MatchService newMatchService(MessageQueue<OrderMessage> orderMessageQueue,
+			MessageQueue<TickMessage> tickMessageQueue, MessageQueue<MatchMessage> matchMessageQueue) {
+		MatchService matchService = new MatchService();
+		matchService.orderMessageQueue = orderMessageQueue;
+		matchService.tickMessageQueue = tickMessageQueue;
+		matchService.matchMessageQueue = matchMessageQueue;
+		return matchService;
+	}
+
 	static OrderMessage createOrder(OrderType type, long id, long price, long amount) {
 		Order o = new Order();
 		o.type = type;
 		o.id = id;
+		o.seqId = o.id;
+		o.userId = 11100;
 		o.price = BigDecimal.valueOf(price);
 		o.amount = BigDecimal.valueOf(amount);
-		return new OrderMessage(id, o);
+		o.createdAt = System.currentTimeMillis();
+		return new LimitOrderMessage(Symbol.BTC_USD,
+				type == OrderType.BUY_LIMIT ? OrderDirection.BUY : OrderDirection.SELL, o.userId, o.seqId, o.id,
+				o.createdAt, o.price, o.amount);
 	}
 
 	static final Random random = new Random();

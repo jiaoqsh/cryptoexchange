@@ -11,15 +11,16 @@ import com.itranswarp.crypto.store.AbstractService;
 @Transactional
 public class SequenceHandler extends AbstractService {
 
-	public void doSequenceOrder(long seqId, Order order) {
+	public void doSequenceOrder(final long seqId, Order order) {
 		final long ts = System.currentTimeMillis();
 		order.status = OrderStatus.SEQUENCED;
+		order.seqId = seqId;
 		order.updatedAt = ts;
 		OrderSequence seq = new OrderSequence();
 		seq.id = seqId;
 		seq.orderId = order.id;
 		seq.createdAt = ts;
-		db.updateProperties(order, "status", "updatedAt");
+		db.updateProperties(order, "status", "seqId", "updatedAt");
 		db.save(seq);
 	}
 

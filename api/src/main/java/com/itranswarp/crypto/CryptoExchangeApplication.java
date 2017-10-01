@@ -9,11 +9,11 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import com.itranswarp.crypto.match.MatchResultMessage;
 import com.itranswarp.crypto.match.TickMessage;
+import com.itranswarp.crypto.match.message.MatchMessage;
 import com.itranswarp.crypto.order.Order;
 import com.itranswarp.crypto.queue.MessageQueue;
-import com.itranswarp.crypto.sequence.OrderMessage;
+import com.itranswarp.crypto.sequence.message.OrderMessage;
 import com.itranswarp.warpdb.WarpDb;
 
 import springfox.documentation.builders.ParameterBuilder;
@@ -55,8 +55,8 @@ public class CryptoExchangeApplication {
 		return new MessageQueue<>(10000);
 	}
 
-	@Bean("matchResultMessageQueue")
-	MessageQueue<MatchResultMessage> createMatchResultMessageQueue() {
+	@Bean("matchMessageQueue")
+	MessageQueue<MatchMessage> createMatchMessageQueue() {
 		return new MessageQueue<>(10000);
 	}
 

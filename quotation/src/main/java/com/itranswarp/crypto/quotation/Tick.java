@@ -13,7 +13,7 @@ import com.itranswarp.crypto.symbol.Symbol;
 @Table(name = "ticks")
 public class Tick extends AbstractEntity {
 
-	@Column(length = 20, nullable = false, updatable = false)
+	@Column(length = VAR_ENUM, nullable = false, updatable = false)
 	public Symbol symbol;
 
 	@Column(unique = true, nullable = false, updatable = false)

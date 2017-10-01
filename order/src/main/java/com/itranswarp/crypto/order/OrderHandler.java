@@ -56,4 +56,23 @@ public class OrderHandler extends AbstractService {
 		db.save(order);
 		return order;
 	}
+
+	public Order createCancelOrder(OrderType cancelType, Order orderToBeCancelled) {
+		Order order = new Order();
+		order.type = cancelType;
+		order.refOrderId = orderToBeCancelled.id;
+		order.refSeqId = orderToBeCancelled.seqId;
+		order.userId = orderToBeCancelled.userId;
+		order.symbol = orderToBeCancelled.symbol;
+		order.status = OrderStatus.SUBMITTED;
+		// IMPORTANT: a cancelled order MUST have the same price with the
+		// order-to-be-cancelled,
+		// otherwise it cannot be found in order book:
+		order.price = orderToBeCancelled.price;
+		// not used in cancelled-type order:
+		order.amount = BigDecimal.ZERO;
+		order.filledAmount = BigDecimal.ZERO;
+		db.save(order);
+		return order;
+	}
 }

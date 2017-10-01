@@ -10,6 +10,10 @@ import org.springframework.stereotype.Component;
 import com.itranswarp.crypto.enums.OrderStatus;
 import com.itranswarp.crypto.order.Order;
 import com.itranswarp.crypto.queue.MessageQueue;
+import com.itranswarp.crypto.sequence.message.CancelOrderMessage;
+import com.itranswarp.crypto.sequence.message.LimitOrderMessage;
+import com.itranswarp.crypto.sequence.message.MarketOrderMessage;
+import com.itranswarp.crypto.sequence.message.OrderMessage;
 import com.itranswarp.crypto.store.AbstractRunnableService;
 
 @Component
@@ -43,7 +47,7 @@ public class SequenceService extends AbstractRunnableService {
 		logger.info("Resend " + seqs.size() + " order messages...");
 		for (OrderSequence seq : seqs) {
 			Order order = db.get(Order.class, seq.orderId);
-			orderMessageQueue.sendMessage(new OrderMessage(seq.id, order));
+			orderMessageQueue.sendMessage(createOrderMessage(seq.id, order));
 		}
 
 		// find SUBMITTED but not SEQUENCED orders:
@@ -76,6 +80,39 @@ public class SequenceService extends AbstractRunnableService {
 
 	void doSequenceOrder(final long seqId, Order order) throws InterruptedException {
 		sequenceHandler.doSequenceOrder(seqId, order);
-		orderMessageQueue.sendMessage(new OrderMessage(seqId, order));
+		orderMessageQueue.sendMessage(createOrderMessage(seqId, order));
+	}
+
+	OrderMessage createOrderMessage(final long seqId, final Order order) {
+		OrderMessage message = null;
+		switch (order.type) {
+		case BUY_LIMIT:
+			message = new LimitOrderMessage(order.symbol, OrderDirection.BUY, order.userId, seqId, order.id,
+					order.createdAt, order.price, order.amount);
+			break;
+		case SELL_LIMIT:
+			message = new LimitOrderMessage(order.symbol, OrderDirection.SELL, order.userId, seqId, order.id,
+					order.createdAt, order.price, order.amount);
+			break;
+		case BUY_MARKET:
+			message = new MarketOrderMessage(order.symbol, OrderDirection.BUY, order.userId, seqId, order.id,
+					order.createdAt, order.amount);
+			break;
+		case SELL_MARKET:
+			message = new MarketOrderMessage(order.symbol, OrderDirection.SELL, order.userId, seqId, order.id,
+					order.createdAt, order.amount);
+			break;
+		case CANCEL_BUY_LIMIT:
+			message = new CancelOrderMessage(order.symbol, OrderDirection.BUY, order.userId, seqId, order.id,
+					order.createdAt, order.refSeqId, order.refOrderId, order.price);
+			break;
+		case CANCEL_SELL_LIMIT:
+			message = new CancelOrderMessage(order.symbol, OrderDirection.SELL, order.userId, seqId, order.id,
+					order.createdAt, order.refSeqId, order.refOrderId, order.price);
+			break;
+		default:
+			throw new RuntimeException("Invalid type: " + order.type);
+		}
+		return message;
 	}
 }

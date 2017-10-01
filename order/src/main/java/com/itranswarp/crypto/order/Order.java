@@ -22,13 +22,31 @@ import com.itranswarp.crypto.symbol.Symbol;
 		@Index(name = "IDX_CREATEDAT", columnList = "createdAt") })
 public class Order extends AbstractEntity {
 
+	/**
+	 * sequence id, set by SequenceService.
+	 */
+	@Column(nullable = false)
+	public long seqId;
+
+	/**
+	 * Reference to another order id.
+	 */
+	@Column(nullable = false, updatable = false)
+	public long refOrderId;
+
+	/**
+	 * Reference to another order's seq id.
+	 */
+	@Column(nullable = false, updatable = false)
+	public long refSeqId;
+
 	@Column(nullable = false, updatable = false)
 	public long userId;
 
-	@Column(nullable = false, updatable = false)
+	@Column(length = VAR_ENUM, nullable = false, updatable = false)
 	public Symbol symbol;
 
-	@Column(nullable = false, updatable = false)
+	@Column(length = VAR_ENUM, nullable = false, updatable = false)
 	public OrderType type;
 
 	@Column(nullable = false, updatable = false, precision = PRECISION, scale = SCALE)
@@ -40,12 +58,14 @@ public class Order extends AbstractEntity {
 	@Column(nullable = false, precision = PRECISION, scale = SCALE)
 	public BigDecimal filledAmount;
 
-	@Column(nullable = false)
+	@Column(length = VAR_ENUM, nullable = false)
 	public OrderStatus status;
 
 	@Override
 	public String toString() {
-		return String.format("Order: %s, userId=%s, type=%s, price=%.2f, amount=%.4f, filledAmount=%.4f, status=%s",
-				this.symbol, this.userId, this.type, this.price, this.amount, this.filledAmount, this.status);
+		return String.format(
+				"Order: %s, seqId=%s, userId=%s, type=%s, price=%.2f, amount=%.4f, filledAmount=%.4f, status=%s",
+				this.symbol, this.seqId, this.userId, this.type, this.price, this.amount, this.filledAmount,
+				this.status);
 	}
 }

@@ -9,10 +9,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.itranswarp.crypto.account.AccountService;
+import com.itranswarp.crypto.enums.MatchResultType;
 import com.itranswarp.crypto.enums.MatchType;
 import com.itranswarp.crypto.enums.OrderStatus;
 import com.itranswarp.crypto.match.MatchRecordMessage;
-import com.itranswarp.crypto.match.MatchResultMessage;
+import com.itranswarp.crypto.match.message.CancelledMessage;
+import com.itranswarp.crypto.match.message.MatchResultMessage;
 import com.itranswarp.crypto.order.Order;
 import com.itranswarp.crypto.store.AbstractService;
 
@@ -30,11 +32,16 @@ public class ClearingHandlerService extends AbstractService {
 	 * @param matchResult
 	 *            MatchResult object.
 	 */
-	public void processMatchResult(MatchResultMessage matchResult) {
+	public void processMatched(MatchResultMessage matchResult) {
 		final long timestamp = matchResult.timestamp;
+		// insert will failed if already processed:
+		MatchResult mr = new MatchResult();
+		mr.type = MatchResultType.MATCHED;
+		mr.orderId = matchResult.orderId;
+		db.save(mr);
 		// a match result contains one taker and one or more makers:
 		Order takerOrder = null;
-		List<OrderMatchRecord> recordCollector = new ArrayList<>();
+		List<MatchRecord> recordCollector = new ArrayList<>();
 		BigDecimal totalSpent = BigDecimal.ZERO;
 		BigDecimal totalAmount = BigDecimal.ZERO;
 		for (MatchRecordMessage record : matchResult.getMatchRecords()) {
@@ -50,7 +57,7 @@ public class ClearingHandlerService extends AbstractService {
 		}
 		clearTakerOrder(takerOrder, matchResult.takerStatus, totalSpent, totalAmount, timestamp);
 		// batch insert:
-		db.save(recordCollector.toArray(new OrderMatchRecord[recordCollector.size()]));
+		db.save(recordCollector.toArray(new MatchRecord[recordCollector.size()]));
 	}
 
 	void clearTakerOrder(Order takerOrder, OrderStatus status, BigDecimal totalSpent, BigDecimal totalAmount,
@@ -68,15 +75,15 @@ public class ClearingHandlerService extends AbstractService {
 			break;
 		case BUY_MARKET:
 		case SELL_MARKET:
-		case BUY_CANCEL:
-		case SELL_CANCEL:
+		case CANCEL_BUY_LIMIT:
+		case CANCEL_SELL_LIMIT:
 		default:
 			throw new RuntimeException("Not implemented order type: " + takerOrder.type);
 		}
 	}
 
 	void clearMakerOrder(Order takerOrder, Order makerOrder, BigDecimal price, BigDecimal amount, OrderStatus status,
-			long timestamp, List<OrderMatchRecord> recordCollector) {
+			long timestamp, List<MatchRecord> recordCollector) {
 		switch (makerOrder.type) {
 		case BUY_LIMIT:
 			// BTC++ and USD--
@@ -100,22 +107,25 @@ public class ClearingHandlerService extends AbstractService {
 			break;
 		case BUY_MARKET:
 		case SELL_MARKET:
-		case BUY_CANCEL:
-		case SELL_CANCEL:
 		default:
 			throw new RuntimeException("Not implemented order type: " + makerOrder.type);
 		}
 	}
 
-	OrderMatchRecord createOrderMatchRecord(long orderId, MatchType type, BigDecimal price, BigDecimal amount,
+	MatchRecord createOrderMatchRecord(long orderId, MatchType type, BigDecimal price, BigDecimal amount,
 			long timestamp) {
-		OrderMatchRecord record = new OrderMatchRecord();
+		MatchRecord record = new MatchRecord();
 		record.orderId = orderId;
 		record.matchType = type;
 		record.matchPrice = price;
 		record.matchAmount = amount;
 		record.matchedAt = timestamp;
 		return record;
+	}
+
+	public void processCancelled(CancelledMessage msg) {
+		// TODO Auto-generated method stub
+
 	}
 
 }
