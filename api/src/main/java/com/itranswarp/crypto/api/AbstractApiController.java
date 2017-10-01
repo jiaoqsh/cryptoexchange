@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.itranswarp.crypto.account.AccountService;
 import com.itranswarp.crypto.match.MatchService;
 import com.itranswarp.crypto.order.OrderService;
+import com.itranswarp.crypto.sequence.SequenceService;
 import com.itranswarp.crypto.user.UserService;
 
 /**
@@ -22,6 +23,9 @@ public abstract class AbstractApiController {
 
 	@Autowired
 	protected OrderService orderService;
+
+	@Autowired
+	protected SequenceService sequenceService;
 
 	@Autowired
 	protected MatchService matchService;
