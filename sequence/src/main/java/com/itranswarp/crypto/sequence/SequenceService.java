@@ -83,7 +83,7 @@ public class SequenceService extends AbstractRunnableService {
 		orderMessageQueue.sendMessage(createOrderMessage(seqId, order));
 	}
 
-	OrderMessage createOrderMessage(final long seqId, final Order order) {
+	public OrderMessage createOrderMessage(final long seqId, final Order order) {
 		OrderMessage message = null;
 		switch (order.type) {
 		case BUY_LIMIT:

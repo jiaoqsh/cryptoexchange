@@ -107,7 +107,7 @@ public class MatchService extends AbstractRunnableService {
 	 * @param order
 	 *            Order object.
 	 */
-	void processOrder(OrderMessage message) throws InterruptedException {
+	public void processOrder(OrderMessage message) throws InterruptedException {
 		if (message instanceof LimitOrderMessage) {
 			// process limit order:
 			LimitOrderMessage limitOrderMessage = (LimitOrderMessage) message;

@@ -1,0 +1,122 @@
+
+CREATE TABLE password_auths (
+  userId BIGINT NOT NULL,
+  random BIGINT NOT NULL,
+  passwd VARCHAR(50) NOT NULL,
+  id BIGINT AUTO_INCREMENT NOT NULL,
+  createdAt BIGINT NOT NULL,
+  updatedAt BIGINT NOT NULL,
+  version BIGINT NOT NULL,
+  CONSTRAINT UNI_USERID UNIQUE (userId),
+  PRIMARY KEY(id)
+);
+
+
+CREATE TABLE order_sequences (
+  id BIGINT NOT NULL,
+  orderId BIGINT NOT NULL,
+  createdAt BIGINT NOT NULL,
+  PRIMARY KEY(id)
+);
+
+
+CREATE TABLE spot_accounts (
+  userId BIGINT NOT NULL,
+  currency VARCHAR(50) NOT NULL,
+  balance DECIMAL(20,8) NOT NULL,
+  frozen DECIMAL(20,8) NOT NULL,
+  id BIGINT AUTO_INCREMENT NOT NULL,
+  createdAt BIGINT NOT NULL,
+  updatedAt BIGINT NOT NULL,
+  version BIGINT NOT NULL,
+  CONSTRAINT UNI_USERID_CURRENCY UNIQUE (userId, currency),
+  PRIMARY KEY(id)
+);
+
+
+CREATE TABLE clearingTransaction (
+  takerOrderId BIGINT NULL,
+  makerOrderId BIGINT NULL,
+  matchPrice BIGINT NULL,
+  matchAmount BIGINT NULL,
+  id BIGINT AUTO_INCREMENT NOT NULL,
+  createdAt BIGINT NOT NULL,
+  updatedAt BIGINT NOT NULL,
+  version BIGINT NOT NULL,
+  CONSTRAINT UNI_takerOrderId_makerOrderId UNIQUE (takerOrderId, makerOrderId),
+  PRIMARY KEY(id)
+);
+
+
+CREATE TABLE ticks (
+  symbol VARCHAR(50) NOT NULL,
+  time BIGINT NOT NULL UNIQUE,
+  price BIGINT NOT NULL,
+  amount DECIMAL(20,8) NOT NULL,
+  id BIGINT AUTO_INCREMENT NOT NULL,
+  createdAt BIGINT NOT NULL,
+  updatedAt BIGINT NOT NULL,
+  version BIGINT NOT NULL,
+  PRIMARY KEY(id)
+);
+
+
+CREATE TABLE match_results (
+  type VARCHAR(50) NOT NULL,
+  orderId BIGINT NOT NULL,
+  id BIGINT AUTO_INCREMENT NOT NULL,
+  createdAt BIGINT NOT NULL,
+  updatedAt BIGINT NOT NULL,
+  version BIGINT NOT NULL,
+  CONSTRAINT UNI_TYPE_ORDER_ID UNIQUE (type, orderId),
+  PRIMARY KEY(id)
+);
+
+
+CREATE TABLE orders (
+  seqId BIGINT NOT NULL,
+  refOrderId BIGINT NOT NULL,
+  refSeqId BIGINT NOT NULL,
+  userId BIGINT NOT NULL,
+  symbol VARCHAR(50) NOT NULL,
+  type VARCHAR(50) NOT NULL,
+  price DECIMAL(20,8) NOT NULL,
+  amount DECIMAL(20,8) NOT NULL,
+  filledAmount DECIMAL(20,8) NOT NULL,
+  status VARCHAR(50) NOT NULL,
+  id BIGINT AUTO_INCREMENT NOT NULL,
+  createdAt BIGINT NOT NULL,
+  updatedAt BIGINT NOT NULL,
+  version BIGINT NOT NULL,
+  INDEX IDX_USERID_STATUS (userId, status),
+  INDEX IDX_CREATEDAT (createdAt),
+  PRIMARY KEY(id)
+);
+
+
+CREATE TABLE match_records (
+  orderId BIGINT NOT NULL,
+  matchType VARCHAR(50) NOT NULL,
+  matchPrice DECIMAL(20,8) NOT NULL,
+  matchAmount DECIMAL(20,8) NOT NULL,
+  matchedAt BIGINT NOT NULL,
+  id BIGINT AUTO_INCREMENT NOT NULL,
+  createdAt BIGINT NOT NULL,
+  updatedAt BIGINT NOT NULL,
+  version BIGINT NOT NULL,
+  INDEX IDX_ORDERID (orderId),
+  PRIMARY KEY(id)
+);
+
+
+CREATE TABLE users (
+  type VARCHAR(50) NOT NULL,
+  email VARCHAR(50) NOT NULL,
+  name VARCHAR(50) NOT NULL,
+  id BIGINT AUTO_INCREMENT NOT NULL,
+  createdAt BIGINT NOT NULL,
+  updatedAt BIGINT NOT NULL,
+  version BIGINT NOT NULL,
+  CONSTRAINT UNI_EMAIL UNIQUE (email),
+  PRIMARY KEY(id)
+);

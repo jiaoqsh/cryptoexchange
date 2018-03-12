@@ -17,6 +17,7 @@
         <module>quotation</module>
         <module>client</module>
         <module>api</module>
+        <module>service-disruptor</module>
     </modules>
 
 </project>
